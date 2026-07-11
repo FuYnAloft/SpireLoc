@@ -1,10 +1,9 @@
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
-using SpireLoc.Core.Steps.Processing;
-using SpireLoc.Core.Transformations;
+using SpireLoc.Core.Steps.Support;
 using Xunit;
 
-namespace SpireLoc.Core.Tests.Steps.Processing;
+namespace SpireLoc.Core.Tests.Steps.Support;
 
 public sealed class UnaryLocBundleProcessorStepTests
 {
