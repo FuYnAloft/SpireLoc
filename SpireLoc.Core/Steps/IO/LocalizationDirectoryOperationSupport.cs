@@ -139,7 +139,7 @@ internal static class LocalizationDirectoryOperationSupport
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(path, text, Utf8);
+                File.WriteAllText(path, NormalizeNewlines(text), Utf8);
             }
             catch (Exception exception)
             {
@@ -157,6 +157,9 @@ internal static class LocalizationDirectoryOperationSupport
 
     private static LocOperationResult Failure(LocWorkspace workspace, string code, string message) =>
         new(workspace, [Diagnostic.Error(code, message)], LocOperationStatus.Failed);
+
+    private static string NormalizeNewlines(string text) =>
+        text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
 
     private static void ValidateFileSegment(string value, string parameterName)
     {

@@ -47,6 +47,20 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
         AssertBundlesEqual(source, readResult.Workspace.Require<LocBundle>("main"));
     }
 
+    [Theory]
+    [MemberData(nameof(Formats))]
+    public void WritersUseLfLineEndings(FormatOperations format)
+    {
+        var source = format.IsFlat ? FlatBundle() : NestedBundle();
+
+        var result = format.CreateWriter(_root)
+            .Execute(LocWorkspace.Empty.Set("main", source), LocExecutionContext.Default);
+        var text = File.ReadAllText(Path.Combine(_root, "zhs", "cards" + format.Extension));
+
+        Assert.Equal(LocOperationStatus.Succeeded, result.Status);
+        Assert.DoesNotContain('\r', text);
+    }
+
     [Fact]
     public void ReaderMergesNewTablesAndOverwritesMatchingEntryKeys()
     {
@@ -156,6 +170,17 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
 
         Assert.Equal(LocOperationStatus.Failed, result.Status);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LocalizationDirectory.WriteInput");
+    }
+
+    [Fact]
+    public void TomlWriterUsesMultilineBasicStringForMultilineValues()
+    {
+        var result = new WriteTomlLocalizationDirectoryOperation(_root)
+            .Execute(LocWorkspace.Empty.Set("main", NestedBundle()), LocExecutionContext.Default);
+        var text = File.ReadAllText(Path.Combine(_root, "zhs", "cards.toml"));
+
+        Assert.Equal(LocOperationStatus.Succeeded, result.Status);
+        Assert.Contains("description = \"\"\"第一行\n第二行\"\"\"", text);
     }
 
     public void Dispose()
