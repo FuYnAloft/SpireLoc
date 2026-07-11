@@ -24,6 +24,25 @@ public sealed class LocBundleTests
         Assert.Equal("en card", bundle[enCards].Single().Value);
     }
 
+    [Fact]
+    public void MutableTablesAreIndependentAndCanConstructANewBundle()
+    {
+        var path = new LocTablePath("zhs", "cards");
+        var source = new LocBundle(new Dictionary<LocTablePath, LocTable>
+        {
+            [path] = new([new LocEntry(["title"], "old")])
+        });
+
+        var tables = source.ToMutableTables();
+        tables[path][0] = new LocEntry(["title"], "new");
+        tables[new LocTablePath("zhs", "ui")] = [new LocEntry(["title"], "ui")];
+        var rebuilt = new LocBundle(tables);
+
+        Assert.Equal("old", source[path].Single().Value);
+        Assert.Equal("new", rebuilt[path].Single().Value);
+        Assert.Equal("ui", rebuilt[new LocTablePath("zhs", "ui")].Single().Value);
+    }
+
     [Theory]
     [InlineData("", "cards")]
     [InlineData("zhs", "")]

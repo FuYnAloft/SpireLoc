@@ -17,6 +17,18 @@ public sealed class LocBundle : IReadOnlyDictionary<LocTablePath, LocTable>, ILo
             new Dictionary<LocTablePath, LocTable>(tables));
     }
 
+    public LocBundle(IEnumerable<KeyValuePair<LocTablePath, IReadOnlyList<LocEntry>>> tables)
+        : this(tables.Select(static table =>
+            KeyValuePair.Create(table.Key, new LocTable(table.Value))))
+    {
+    }
+
+    public LocBundle(IEnumerable<KeyValuePair<LocTablePath, List<LocEntry>>> tables)
+        : this(tables.Select(static table =>
+            KeyValuePair.Create(table.Key, (IReadOnlyList<LocEntry>)table.Value)))
+    {
+    }
+
     public int Count => _tables.Count;
     public IEnumerable<LocTablePath> Keys => _tables.Keys;
     public IEnumerable<LocTable> Values => _tables.Values;
@@ -26,6 +38,14 @@ public sealed class LocBundle : IReadOnlyDictionary<LocTablePath, LocTable>, ILo
         _tables.TryGetValue(path, out value);
     public IEnumerator<KeyValuePair<LocTablePath, LocTable>> GetEnumerator() => _tables.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>
+    /// Creates a mutable snapshot of this bundle. Modifying the returned dictionary or lists does not affect this bundle.
+    /// </summary>
+    public Dictionary<LocTablePath, List<LocEntry>> ToMutableTables() =>
+        _tables.ToDictionary(
+            static table => table.Key,
+            static table => table.Value.ToList());
 
     /// <summary>
     /// Returns a bundle where tables and entries from <paramref name="overlay"/> replace matching values in this bundle.
