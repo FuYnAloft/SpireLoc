@@ -6,4 +6,9 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+        <PackageReference Include="Tomlyn" Version="0.17.0" />
+        <PackageReference Include="YamlDotNet" Version="18.0.0" />
+    </ItemGroup>
+
 </Project>
