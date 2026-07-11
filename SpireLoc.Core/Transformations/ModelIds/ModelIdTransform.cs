@@ -7,57 +7,81 @@ namespace SpireLoc.Core.Transformations.ModelIds;
 /// <summary>Transforms configured model ID key segments while keeping the entry's structure and value intact.</summary>
 public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 {
-    private readonly ModelIdRule[] _rules;
-
-    public ModelIdTransform(params ModelIdRule[] rules)
+    public ModelIdTransform(int keyIndex, string prefix)
     {
-        ArgumentNullException.ThrowIfNull(rules);
-        if (rules.Any(static rule => rule is null))
-            throw new ArgumentException("Model ID transform rules cannot be null.", nameof(rules));
-        if (rules.Any(static rule => rule.KeyIndex < 0))
-            throw new ArgumentOutOfRangeException(nameof(rules), "Model ID key indexes cannot be negative.");
-        if (rules.Select(static rule => rule.KeyIndex).Distinct().Count() != rules.Length)
-            throw new ArgumentException("Only one model ID rule may target each key index.", nameof(rules));
-        if (rules.Any(static rule => rule.Prefix is null))
-            throw new ArgumentException("Model ID prefixes cannot be null.", nameof(rules));
+        ArgumentOutOfRangeException.ThrowIfNegative(keyIndex);
+        ArgumentNullException.ThrowIfNull(prefix);
 
-        _rules = rules.ToArray();
+        KeyIndex = keyIndex;
+        Prefix = prefix;
     }
 
-    protected override LocEntry TransformToGame(LocEntry entry, LocEntryTransformContext context)
+    public int KeyIndex { get; }
+    public string Prefix { get; }
+
+    public static ModelIdTransform Vanilla(int keyIndex) =>
+        new(keyIndex, string.Empty);
+
+    public static ModelIdTransform Prefixed(int keyIndex, string prefix) =>
+        new(keyIndex, prefix);
+
+    public static ModelIdTransform BaseLib(int keyIndex, string namespaceTop) =>
+        Prefixed(keyIndex, BaseLibPrefix(namespaceTop));
+
+    public static ModelIdTransform RitsuLib(int keyIndex, string modId, string category) =>
+        Prefixed(keyIndex, RitsuLibPrefix(modId, category));
+
+    public static string BaseLibPrefix(string namespaceTop)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(namespaceTop);
+        return $"{namespaceTop.ToUpperInvariant()}-";
+    }
+
+    public static string RitsuLibPrefix(string modId, string category) =>
+        $"{NormalizePublicStem(modId)}_{SlugifyCategory(category)}_";
+
+    protected override LocEntry TransformToGame(LocEntry entry, LocEntryTransformContext context) =>
+        TransformToGame(entry, KeyIndex, Prefix, context);
+
+    protected override LocEntry TransformToSource(LocEntry entry, LocEntryTransformContext context) =>
+        TransformToSource(entry, KeyIndex, Prefix, context);
+
+    internal static LocEntry TransformToGame(
+        LocEntry entry,
+        int keyIndex,
+        string prefix,
+        LocEntryTransformContext context)
     {
         var key = entry.Key.ToArray();
-        foreach (var rule in _rules)
-        {
-            if (!TryGetSegment(key, rule, context, out var segment))
-                continue;
-            if (PreservedIdRegex().IsMatch(segment))
-                continue;
+        if (!TryGetSegment(key, keyIndex, context, out var segment))
+            return entry;
+        if (PreservedIdRegex().IsMatch(segment))
+            return entry;
 
-            key[rule.KeyIndex] = rule.Prefix + Slugify(segment);
-        }
+        key[keyIndex] = prefix + Slugify(segment);
 
         return new LocEntry(key, entry.Value);
     }
 
-    protected override LocEntry TransformToSource(LocEntry entry, LocEntryTransformContext context)
+    internal static LocEntry TransformToSource(
+        LocEntry entry,
+        int keyIndex,
+        string prefix,
+        LocEntryTransformContext context)
     {
         var key = entry.Key.ToArray();
-        foreach (var rule in _rules)
-        {
-            if (!TryGetSegment(key, rule, context, out var segment))
-                continue;
+        if (!TryGetSegment(key, keyIndex, context, out var segment))
+            return entry;
 
-            if (segment.StartsWith(rule.Prefix, StringComparison.Ordinal))
-            {
-                key[rule.KeyIndex] = Unslugify(segment[rule.Prefix.Length..]);
-            }
-            else if (!PreservedIdRegex().IsMatch(segment))
-            {
-                context.ReportWarning(
-                    "ModelIdTransform.UnexpectedGameId",
-                    $"Key segment '{segment}' at index {rule.KeyIndex} does not start with expected prefix '{rule.Prefix}'.");
-            }
+        if (segment.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            key[keyIndex] = Unslugify(segment[prefix.Length..]);
+        }
+        else if (!PreservedIdRegex().IsMatch(segment))
+        {
+            context.ReportWarning(
+                "ModelIdTransform.UnexpectedGameId",
+                $"Key segment '{segment}' at index {keyIndex} does not start with expected prefix '{prefix}'.");
         }
 
         return new LocEntry(key, entry.Value);
@@ -84,21 +108,43 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     private static bool TryGetSegment(
         IReadOnlyList<string> key,
-        ModelIdRule rule,
+        int keyIndex,
         LocEntryTransformContext context,
         out string segment)
     {
-        if (rule.KeyIndex < key.Count)
+        if (keyIndex < key.Count)
         {
-            segment = key[rule.KeyIndex];
+            segment = key[keyIndex];
             return true;
         }
 
         context.ReportError(
             "ModelIdTransform.KeyIndexOutOfRange",
-            $"Key index {rule.KeyIndex} is outside the entry key with {key.Count} segments.");
+            $"Key index {keyIndex} is outside the entry key with {key.Count} segments.");
         segment = string.Empty;
         return false;
+    }
+
+    private static string NormalizePublicStem(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        var normalized = NonAlphaNumericRegex().Replace(value.Trim(), "_");
+        normalized = AcronymBoundaryRegex().Replace(normalized, "$1_$2");
+        normalized = CamelBoundaryRegex().Replace(normalized, "$1_$2");
+        normalized = RepeatedUnderscoreRegex().Replace(normalized, "_");
+        return normalized.Trim('_').ToUpperInvariant();
+    }
+
+    private static string SlugifyCategory(string category)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
+        if (category.All(char.IsUpper))
+            return category;
+
+        var slug = Slugify(category);
+        return slug.EndsWith("_MODEL", StringComparison.Ordinal)
+            ? slug[..^"_MODEL".Length]
+            : slug;
     }
 
     [GeneratedRegex("^[A-Z_-]+$")]
@@ -115,5 +161,17 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     [GeneratedRegex(@"[^A-Z0-9_]")]
     private static partial Regex SpecialCharacterRegex();
+
+    [GeneratedRegex("[^A-Za-z0-9]+")]
+    private static partial Regex NonAlphaNumericRegex();
+
+    [GeneratedRegex("([A-Z]+)([A-Z][a-z])")]
+    private static partial Regex AcronymBoundaryRegex();
+
+    [GeneratedRegex("([a-z0-9])([A-Z])")]
+    private static partial Regex CamelBoundaryRegex();
+
+    [GeneratedRegex("_+")]
+    private static partial Regex RepeatedUnderscoreRegex();
 
 }

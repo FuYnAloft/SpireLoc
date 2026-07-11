@@ -53,7 +53,7 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void VanillaModelIdTransformMatchesEmptyPrefixBehavior()
     {
-        var transform = new ModelIdTransform(ModelIdRules.Vanilla(0));
+        var transform = ModelIdTransform.Vanilla(0);
         var source = Entry("DoroStrike", "value");
 
         var game = transform.ToGame(source, Context());
@@ -64,22 +64,20 @@ public sealed class LocEntryTransformTests
     }
 
     [Fact]
-    public void ModelIdTransformHandlesMultipleSegmentsWithIndependentPrefixes()
+    public void ModelIdTransformChangesOnlyItsConfiguredSegment()
     {
-        var transform = new ModelIdTransform(
-            new ModelIdRule(0, "FIRST-"),
-            new ModelIdRule(2, "SECOND-"));
+        var transform = ModelIdTransform.Prefixed(0, "FIRST-");
 
         var game = transform.ToGame(new LocEntry(["FirstModel", "unchanged", "SecondModel"], "value"), Context());
 
-        Assert.Equal(["FIRST-FIRST_MODEL", "unchanged", "SECOND-SECOND_MODEL"], game.Key);
+        Assert.Equal(["FIRST-FIRST_MODEL", "unchanged", "SecondModel"], game.Key);
     }
 
     [Fact]
     public void ModelIdTransformPreservesUppercaseSourceIdAndUnknownGameId()
     {
         var diagnostics = new List<Diagnostic>();
-        var transform = new ModelIdTransform(ModelIdRules.Prefixed(0, "MOD-"));
+        var transform = ModelIdTransform.Prefixed(0, "MOD-");
 
         var source = transform.ToGame(Entry("EXTERNAL-ID", "value"), Context(diagnostics));
         var game = transform.ToSource(Entry("OtherId", "value"), Context(diagnostics));
@@ -93,7 +91,7 @@ public sealed class LocEntryTransformTests
     public void ModelIdTransformReportsOutOfRangeRuleAndLeavesEntryUnchanged()
     {
         var diagnostics = new List<Diagnostic>();
-        var transform = new ModelIdTransform(ModelIdRules.Prefixed(2, "MOD-"));
+        var transform = ModelIdTransform.Prefixed(2, "MOD-");
         var entry = Entry("OnlySegment", "value");
 
         var result = transform.ToGame(entry, Context(diagnostics));
@@ -105,11 +103,79 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void BaseLibAndRitsuLibFactoriesPreserveLegacyPrefixes()
     {
-        var baseLib = new ModelIdTransform(ModelIdRules.BaseLib(0, "myMod"));
-        var ritsuLib = new ModelIdTransform(ModelIdRules.RitsuLib(0, "myMod", "CardModel"));
+        var baseLib = ModelIdTransform.BaseLib(0, "myMod");
+        var ritsuLib = ModelIdTransform.RitsuLib(0, "myMod", "CardModel");
 
+        Assert.Equal("MYMOD-", ModelIdTransform.BaseLibPrefix("myMod"));
+        Assert.Equal("MY_MOD_CARD_", ModelIdTransform.RitsuLibPrefix("myMod", "CardModel"));
         Assert.Equal("MYMOD-CARD_ID", baseLib.ToGame(Entry("CardId", "value"), Context()).Key[0]);
         Assert.Equal("MY_MOD_CARD_CARD_ID", ritsuLib.ToGame(Entry("CardId", "value"), Context()).Key[0]);
+    }
+
+    [Fact]
+    public void AncientModelIdTransformHandlesAncientAndCharacterIdsByDialogueShape()
+    {
+        var transform = new AncientModelIdTransform("ANCIENT-", "CHARACTER-");
+        var source = new LocEntry(["CustomAncient", "talk", "CustomCharacter", "0-0", "ancient"], "value");
+
+        var game = transform.ToGame(source, Context());
+        var reverted = transform.ToSource(game, Context());
+
+        Assert.Equal(
+            ["ANCIENT-CUSTOM_ANCIENT", "talk", "CHARACTER-CUSTOM_CHARACTER", "0-0", "ancient"],
+            game.Key);
+        Assert.Equal(source, reverted);
+    }
+
+    [Fact]
+    public void AncientModelIdTransformReportsNonReversibilityOnlyOnce()
+    {
+        var diagnostics = new List<Diagnostic>();
+        var transform = new AncientModelIdTransform("", "");
+        var source = new LocEntry(["Custom.Ancient", "pages", "INITIAL", "description"], "value");
+
+        transform.ToGame(source, Context(diagnostics));
+
+        Assert.Single(diagnostics.Where(diagnostic => diagnostic.Code == "EntryTransform.NonReversible"));
+    }
+
+    [Theory]
+    [InlineData("ANY")]
+    [InlineData("firstVisitEver")]
+    public void AncientModelIdTransformPreservesDialogueSelectors(string selector)
+    {
+        var transform = AncientModelIdTransform.Vanilla();
+        var source = new LocEntry(["Neow", "talk", selector, "0-0", "ancient"], "value");
+
+        var game = transform.ToGame(source, Context());
+        var reverted = transform.ToSource(game, Context());
+
+        Assert.Equal("NEOW", game.Key[0]);
+        Assert.Equal(selector, game.Key[2]);
+        Assert.Equal(source, reverted);
+    }
+
+    [Fact]
+    public void AncientModelIdTransformSkipsCharacterTransformOutsideTalkBranch()
+    {
+        var transform = AncientModelIdTransform.BaseLib("myMod");
+        var source = new LocEntry(["CustomAncient", "pages", "INITIAL", "description"], "value");
+
+        var game = transform.ToGame(source, Context());
+
+        Assert.Equal(["MYMOD-CUSTOM_ANCIENT", "pages", "INITIAL", "description"], game.Key);
+    }
+
+    [Fact]
+    public void AncientModelIdTransformRitsuLibUsesAncientAndCharacterCategories()
+    {
+        var transform = AncientModelIdTransform.RitsuLib("myMod");
+        var source = new LocEntry(["CustomAncient", "talk", "CustomCharacter", "0-0", "ancient"], "value");
+
+        var game = transform.ToGame(source, Context());
+
+        Assert.Equal("MY_MOD_ANCIENT_CUSTOM_ANCIENT", game.Key[0]);
+        Assert.Equal("MY_MOD_CHARACTER_CUSTOM_CHARACTER", game.Key[2]);
     }
 
     [Fact]
