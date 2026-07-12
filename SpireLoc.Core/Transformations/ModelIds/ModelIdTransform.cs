@@ -10,8 +10,6 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
     public ModelIdTransform(int keyIndex, string prefix)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(keyIndex);
-        ArgumentNullException.ThrowIfNull(prefix);
-
         KeyIndex = keyIndex;
         Prefix = prefix;
     }
@@ -33,7 +31,7 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     public static string BaseLibPrefix(string namespaceTop)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(namespaceTop);
+        ValidateNotBlank(namespaceTop, nameof(namespaceTop));
         return $"{namespaceTop.ToUpperInvariant()}-";
     }
 
@@ -89,7 +87,6 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     public static string Slugify(string value)
     {
-        ArgumentNullException.ThrowIfNull(value);
         var separated = CamelCaseRegex().Replace(value.Trim(), "$1_$2");
         var normalized = WhitespaceRegex().Replace(separated.ToUpperInvariant(), "_");
         return SpecialCharacterRegex().Replace(normalized, string.Empty);
@@ -97,7 +94,6 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     public static string Unslugify(string value)
     {
-        ArgumentNullException.ThrowIfNull(value);
         if (value.Length == 0)
             return string.Empty;
 
@@ -127,7 +123,7 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     private static string NormalizePublicStem(string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        ValidateNotBlank(value, nameof(value));
         var normalized = NonAlphaNumericRegex().Replace(value.Trim(), "_");
         normalized = AcronymBoundaryRegex().Replace(normalized, "$1_$2");
         normalized = CamelBoundaryRegex().Replace(normalized, "$1_$2");
@@ -137,7 +133,7 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     private static string SlugifyCategory(string category)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(category);
+        ValidateNotBlank(category, nameof(category));
         if (category.All(char.IsUpper))
             return category;
 
@@ -145,6 +141,12 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
         return slug.EndsWith("_MODEL", StringComparison.Ordinal)
             ? slug[..^"_MODEL".Length]
             : slug;
+    }
+
+    private static void ValidateNotBlank(string value, string parameterName)
+    {
+        if (value.Length == 0 || value.All(char.IsWhiteSpace))
+            throw new ArgumentException("Value cannot be empty or whitespace.", parameterName);
     }
 
     [GeneratedRegex("^[A-Z_-]+$")]

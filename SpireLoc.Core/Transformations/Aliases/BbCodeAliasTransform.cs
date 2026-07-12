@@ -17,7 +17,7 @@ public sealed partial class BbCodeAliasTransform(params BbCodeAliasTransform.Rul
 
     private string OriginalToAlias(string text)
     {
-        if (string.IsNullOrEmpty(text))
+        if (text.Length == 0)
             return text;
 
         var nodes = Parse(text);
@@ -47,7 +47,7 @@ public sealed partial class BbCodeAliasTransform(params BbCodeAliasTransform.Rul
 
     private string AliasToOriginal(string text)
     {
-        if (string.IsNullOrEmpty(text))
+        if (text.Length == 0)
             return text;
 
         var nodes = Parse(text);

@@ -9,7 +9,6 @@ public sealed class LocTable : IReadOnlyList<LocEntry>
 
     public LocTable(IEnumerable<LocEntry> entries)
     {
-        ArgumentNullException.ThrowIfNull(entries);
         _entries = entries.ToArray();
     }
 

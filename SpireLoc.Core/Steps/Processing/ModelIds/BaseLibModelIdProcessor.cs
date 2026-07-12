@@ -14,7 +14,8 @@ public sealed class BaseLibModelIdProcessor : ModelIdBundleProcessor
     public BaseLibModelIdProcessor(ModelIdDirection direction, string namespaceTop)
         : base(direction)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(namespaceTop);
+        if (namespaceTop.Length == 0 || namespaceTop.All(char.IsWhiteSpace))
+            throw new ArgumentException("Namespace cannot be empty or whitespace.", nameof(namespaceTop));
 
         NamespaceTop = namespaceTop;
         _modelId = ModelIdTransform.BaseLib(0, namespaceTop);

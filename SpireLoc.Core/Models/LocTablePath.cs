@@ -5,8 +5,10 @@ public sealed record LocTablePath
 {
     public LocTablePath(string language, string tableName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(language);
-        ArgumentException.ThrowIfNullOrWhiteSpace(tableName);
+        if (language.Length == 0 || language.All(char.IsWhiteSpace))
+            throw new ArgumentException("Language cannot be empty or whitespace.", nameof(language));
+        if (tableName.Length == 0 || tableName.All(char.IsWhiteSpace))
+            throw new ArgumentException("Table name cannot be empty or whitespace.", nameof(tableName));
 
         Language = language;
         TableName = tableName;

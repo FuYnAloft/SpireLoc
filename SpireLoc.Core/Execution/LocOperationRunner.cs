@@ -10,9 +10,6 @@ public sealed class LocOperationRunner
         IReadOnlyList<ILocOperation> operations,
         LocExecutionContext? context = null)
     {
-        ArgumentNullException.ThrowIfNull(initialWorkspace);
-        ArgumentNullException.ThrowIfNull(operations);
-
         var workspace = initialWorkspace;
         var diagnostics = new DiagnosticCollection();
         context ??= LocExecutionContext.Default;
@@ -20,18 +17,9 @@ public sealed class LocOperationRunner
         for (var index = 0; index < operations.Count; index++)
         {
             var operation = operations[index];
-            if (operation is null)
-            {
-                diagnostics.AddError(
-                    "Operation.Null",
-                    $"Operation at index {index} is null and was skipped.");
-                continue;
-            }
-
             try
             {
-                var result = operation.Execute(workspace, context)
-                    ?? throw new InvalidOperationException("An operation returned null.");
+                var result = operation.Execute(workspace, context);
                 workspace = result.Workspace;
                 diagnostics.AddRange(result.Diagnostics);
             }

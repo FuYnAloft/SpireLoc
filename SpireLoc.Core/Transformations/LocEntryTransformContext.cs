@@ -13,9 +13,7 @@ public sealed class LocEntryTransformContext
         LocExecutionContext operationContext,
         DiagnosticCollection? diagnostics = null)
     {
-        ArgumentNullException.ThrowIfNull(tablePath);
         ArgumentOutOfRangeException.ThrowIfNegative(entryIndex);
-        ArgumentNullException.ThrowIfNull(operationContext);
 
         TablePath = tablePath;
         EntryIndex = entryIndex;
@@ -30,7 +28,6 @@ public sealed class LocEntryTransformContext
 
     public void Report(Diagnostic diagnostic)
     {
-        ArgumentNullException.ThrowIfNull(diagnostic);
         Diagnostics?.Add(diagnostic with { Message = $"[{TablePath}#{EntryIndex}] {diagnostic.Message}" });
     }
 

@@ -6,9 +6,6 @@ public sealed class LocProgramResult
 {
     public LocProgramResult(LocWorkspace workspace, IEnumerable<Diagnostic> diagnostics)
     {
-        ArgumentNullException.ThrowIfNull(workspace);
-        ArgumentNullException.ThrowIfNull(diagnostics);
-
         Workspace = workspace;
         Diagnostics = diagnostics is DiagnosticCollection collection
             ? collection

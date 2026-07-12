@@ -43,8 +43,6 @@ public abstract class ModelIdBundleProcessor : UnaryLocBundleProcessor
 
     public override LocBundle Process(LocBundle bundle, DiagnosticCollection? diagnostics = null)
     {
-        ArgumentNullException.ThrowIfNull(bundle);
-
         var tables = new Dictionary<LocTablePath, List<LocEntry>>(bundle.Count);
         foreach (var (tablePath, table) in bundle)
         {

@@ -7,9 +7,6 @@ public abstract class ReversibleLocEntryTransform : ILocEntryTransform
 {
     public LocEntry ToGame(LocEntry entry, LocEntryTransformContext context)
     {
-        ArgumentNullException.ThrowIfNull(entry);
-        ArgumentNullException.ThrowIfNull(context);
-
         var transformed = TransformToGame(entry, context);
         VerifyRoundTrip(entry, TransformToSource(transformed, context), "ToGame", context);
         return transformed;
@@ -17,9 +14,6 @@ public abstract class ReversibleLocEntryTransform : ILocEntryTransform
 
     public LocEntry ToSource(LocEntry entry, LocEntryTransformContext context)
     {
-        ArgumentNullException.ThrowIfNull(entry);
-        ArgumentNullException.ThrowIfNull(context);
-
         var transformed = TransformToSource(entry, context);
         VerifyRoundTrip(entry, TransformToGame(transformed, context), "ToSource", context);
         return transformed;

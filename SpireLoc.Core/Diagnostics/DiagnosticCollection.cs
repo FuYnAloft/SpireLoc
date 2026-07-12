@@ -14,7 +14,6 @@ public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
 
     public DiagnosticCollection(IEnumerable<Diagnostic> diagnostics)
     {
-        ArgumentNullException.ThrowIfNull(diagnostics);
         _diagnostics = [.. diagnostics];
     }
 
@@ -24,13 +23,11 @@ public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
 
     public void Add(Diagnostic diagnostic)
     {
-        ArgumentNullException.ThrowIfNull(diagnostic);
         _diagnostics.Add(diagnostic);
     }
 
     public void AddRange(IEnumerable<Diagnostic> diagnostics)
     {
-        ArgumentNullException.ThrowIfNull(diagnostics);
         _diagnostics.AddRange(diagnostics);
     }
 
@@ -45,7 +42,6 @@ public sealed class DiagnosticCollection : IReadOnlyList<Diagnostic>
 
     public void AddException(string code, Exception exception)
     {
-        ArgumentNullException.ThrowIfNull(exception);
         AddError(code, exception.Message);
     }
 

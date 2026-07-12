@@ -16,7 +16,6 @@ public sealed class LocOperationResult
         IEnumerable<Diagnostic>? diagnostics = null,
         LocOperationStatus status = LocOperationStatus.Succeeded)
     {
-        ArgumentNullException.ThrowIfNull(workspace);
         Workspace = workspace;
         Diagnostics = diagnostics switch
         {

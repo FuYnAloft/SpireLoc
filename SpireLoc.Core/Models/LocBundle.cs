@@ -12,7 +12,6 @@ public sealed class LocBundle : IReadOnlyDictionary<LocTablePath, LocTable>, ILo
 
     public LocBundle(IEnumerable<KeyValuePair<LocTablePath, LocTable>> tables)
     {
-        ArgumentNullException.ThrowIfNull(tables);
         _tables = new ReadOnlyDictionary<LocTablePath, LocTable>(
             new Dictionary<LocTablePath, LocTable>(tables));
     }
@@ -53,8 +52,6 @@ public sealed class LocBundle : IReadOnlyDictionary<LocTablePath, LocTable>, ILo
     /// </summary>
     public LocBundle Overlay(LocBundle overlay)
     {
-        ArgumentNullException.ThrowIfNull(overlay);
-
         var tables = new Dictionary<LocTablePath, LocTable>(_tables);
         foreach (var (path, overlayTable) in overlay)
         {

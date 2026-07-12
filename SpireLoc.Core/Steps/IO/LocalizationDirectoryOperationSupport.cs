@@ -18,10 +18,9 @@ internal static class LocalizationDirectoryOperationSupport
         string extension,
         Func<string, LocTable> parseTable)
     {
-        ArgumentNullException.ThrowIfNull(workspace);
-        if (string.IsNullOrWhiteSpace(rootPath))
+        if (IsBlank(rootPath))
             return Failure(workspace, "LocalizationDirectory.RootPath", "Localization root path cannot be blank.");
-        if (string.IsNullOrWhiteSpace(toSlot))
+        if (IsBlank(toSlot))
             return Failure(workspace, "LocalizationDirectory.ReadInput", "Target slot name cannot be blank.");
 
         LocBundle? existing = null;
@@ -93,10 +92,9 @@ internal static class LocalizationDirectoryOperationSupport
         string extension,
         Func<LocTable, string> serializeTable)
     {
-        ArgumentNullException.ThrowIfNull(workspace);
-        if (string.IsNullOrWhiteSpace(rootPath))
+        if (IsBlank(rootPath))
             return Failure(workspace, "LocalizationDirectory.RootPath", "Localization root path cannot be blank.");
-        if (string.IsNullOrWhiteSpace(fromSlot))
+        if (IsBlank(fromSlot))
             return Failure(workspace, "LocalizationDirectory.WriteInput", "Source slot name cannot be blank.");
 
         LocBundle bundle;
@@ -167,6 +165,8 @@ internal static class LocalizationDirectoryOperationSupport
 
     private static string NormalizeNewlines(string text) =>
         text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
+
+    private static bool IsBlank(string value) => value.Length == 0 || value.All(char.IsWhiteSpace);
 
     private static void ValidateFileSegment(string value, string parameterName)
     {

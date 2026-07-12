@@ -15,9 +15,6 @@ public sealed class AncientModelIdTransform : ReversibleLocEntryTransform
 
     public AncientModelIdTransform(string ancientPrefix, string characterPrefix)
     {
-        ArgumentNullException.ThrowIfNull(ancientPrefix);
-        ArgumentNullException.ThrowIfNull(characterPrefix);
-
         AncientPrefix = ancientPrefix;
         CharacterPrefix = characterPrefix;
     }

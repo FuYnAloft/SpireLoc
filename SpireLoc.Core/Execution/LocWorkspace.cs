@@ -63,8 +63,6 @@ public sealed class LocWorkspace : IReadOnlyDictionary<string, ILocArtifact>
     public LocWorkspace Set(string slotName, ILocArtifact artifact)
     {
         ValidateSlotName(slotName);
-        ArgumentNullException.ThrowIfNull(artifact);
-
         return new LocWorkspace(_slots.SetItem(slotName, artifact));
     }
 
@@ -83,6 +81,7 @@ public sealed class LocWorkspace : IReadOnlyDictionary<string, ILocArtifact>
 
     internal static void ValidateSlotName(string slotName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(slotName);
+        if (slotName.Length == 0 || slotName.All(char.IsWhiteSpace))
+            throw new ArgumentException("Slot name cannot be empty or whitespace.", nameof(slotName));
     }
 }

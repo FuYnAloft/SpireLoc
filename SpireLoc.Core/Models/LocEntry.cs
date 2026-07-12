@@ -10,9 +10,6 @@ public sealed record LocEntry
 
     public LocEntry(IEnumerable<string> key, string value)
     {
-        ArgumentNullException.ThrowIfNull(key);
-        ArgumentNullException.ThrowIfNull(value);
-
         _key = new KeySegments(key);
         if (_key.Count == 0)
             throw new ArgumentException("A localization key must contain at least one segment.", nameof(key));
@@ -46,8 +43,6 @@ public sealed record LocEntry
         public KeySegments(IEnumerable<string> segments)
         {
             _segments = segments.ToArray();
-            if (_segments.Any(static segment => segment is null))
-                throw new ArgumentException("Localization key segments cannot be null.", nameof(segments));
         }
 
         public int Count => _segments.Length;

@@ -12,7 +12,6 @@ public sealed class UnaryLocBundleProcessorStep : ILocOperation
         string fromSlot,
         string toSlot)
     {
-        ArgumentNullException.ThrowIfNull(processor);
         LocWorkspace.ValidateSlotName(fromSlot);
         LocWorkspace.ValidateSlotName(toSlot);
 
@@ -27,9 +26,6 @@ public sealed class UnaryLocBundleProcessorStep : ILocOperation
 
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context)
     {
-        ArgumentNullException.ThrowIfNull(workspace);
-        ArgumentNullException.ThrowIfNull(context);
-
         LocBundle input;
         var diagnostics = new DiagnosticCollection();
         try
@@ -44,8 +40,7 @@ public sealed class UnaryLocBundleProcessorStep : ILocOperation
 
         try
         {
-            var output = Processor.Process(input, diagnostics)
-                ?? throw new InvalidOperationException("The bundle processor returned null.");
+            var output = Processor.Process(input, diagnostics);
             return new LocOperationResult(
                 workspace.Set(ToSlot, output),
                 diagnostics,

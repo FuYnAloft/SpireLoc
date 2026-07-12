@@ -14,7 +14,8 @@ public sealed class RitsuLibModelIdProcessor : ModelIdBundleProcessor
     public RitsuLibModelIdProcessor(ModelIdDirection direction, string modId)
         : base(direction)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(modId);
+        if (modId.Length == 0 || modId.All(char.IsWhiteSpace))
+            throw new ArgumentException("Mod ID cannot be empty or whitespace.", nameof(modId));
 
         ModId = modId;
         _tableTransforms = new Dictionary<string, ModelIdTransform>(StringComparer.Ordinal)
