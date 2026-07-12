@@ -2,9 +2,19 @@ using SpireLoc.Core.Diagnostics;
 
 namespace SpireLoc.Core.Execution;
 
-public sealed class LocProgramResult(LocWorkspace workspace, IEnumerable<Diagnostic> diagnostics)
+public sealed class LocProgramResult
 {
-    public LocWorkspace Workspace { get; } = workspace ?? throw new ArgumentNullException(nameof(workspace));
-    public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics?.ToArray()
-        ?? throw new ArgumentNullException(nameof(diagnostics));
+    public LocProgramResult(LocWorkspace workspace, IEnumerable<Diagnostic> diagnostics)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        ArgumentNullException.ThrowIfNull(diagnostics);
+
+        Workspace = workspace;
+        Diagnostics = diagnostics is DiagnosticCollection collection
+            ? collection
+            : new DiagnosticCollection(diagnostics);
+    }
+
+    public LocWorkspace Workspace { get; }
+    public DiagnosticCollection Diagnostics { get; }
 }

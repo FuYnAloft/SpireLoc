@@ -14,7 +14,7 @@ public sealed class LocOperationRunner
         ArgumentNullException.ThrowIfNull(operations);
 
         var workspace = initialWorkspace;
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         context ??= LocExecutionContext.Default;
 
         for (var index = 0; index < operations.Count; index++)
@@ -22,9 +22,9 @@ public sealed class LocOperationRunner
             var operation = operations[index];
             if (operation is null)
             {
-                diagnostics.Add(Diagnostic.Error(
+                diagnostics.AddError(
                     "Operation.Null",
-                    $"Operation at index {index} is null and was skipped."));
+                    $"Operation at index {index} is null and was skipped.");
                 continue;
             }
 
@@ -37,9 +37,9 @@ public sealed class LocOperationRunner
             }
             catch (Exception exception)
             {
-                diagnostics.Add(Diagnostic.Error(
+                diagnostics.AddError(
                     "Operation.InternalError",
-                    $"Operation at index {index} failed unexpectedly: {exception.Message}"));
+                    $"Operation at index {index} failed unexpectedly: {exception.Message}");
             }
         }
 

@@ -1,3 +1,4 @@
+using SpireLoc.Core.Diagnostics;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
 using SpireLoc.Core.Steps.Support;
@@ -40,7 +41,7 @@ public abstract class ModelIdBundleProcessor : UnaryLocBundleProcessor
 
     public ModelIdDirection Direction { get; }
 
-    public override LocBundle Process(LocBundle bundle)
+    public override LocBundle Process(LocBundle bundle, DiagnosticCollection? diagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(bundle);
 
@@ -51,7 +52,8 @@ public abstract class ModelIdBundleProcessor : UnaryLocBundleProcessor
             for (var entryIndex = 0; entryIndex < table.Count; entryIndex++)
             {
                 var entry = table[entryIndex];
-                var context = new LocEntryTransformContext(tablePath, entryIndex, LocExecutionContext.Default);
+                var context = new LocEntryTransformContext(
+                    tablePath, entryIndex, LocExecutionContext.Default, diagnostics);
                 foreach (var transform in GetTransforms(tablePath, entry))
                     entry = Apply(transform, entry, context);
 

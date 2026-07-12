@@ -1,3 +1,4 @@
+using SpireLoc.Core.Diagnostics;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
 using SpireLoc.Core.Steps.Support;
@@ -38,6 +39,20 @@ public sealed class UnaryLocBundleProcessorStepTests
             Assert.Equal("UnaryLocBundleProcessorStep.Input", diagnostic.Code));
     }
 
+    [Fact]
+    public void ReturnsProcessorDiagnosticsAndMarksErrorsAsFailure()
+    {
+        var source = BundleWith("source");
+        var workspace = LocWorkspace.Empty.Set("from", source);
+        var step = new UnaryLocBundleProcessorStep(new ReportingProcessor(), "from", "to");
+
+        var result = step.Execute(workspace, LocExecutionContext.Default);
+
+        Assert.Equal(LocOperationStatus.Failed, result.Status);
+        Assert.Same(source, result.Workspace.Require<LocBundle>("to"));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "Test.ProcessorError");
+    }
+
     private static LocBundle BundleWith(string value) => new(
         new Dictionary<LocTablePath, LocTable>
         {
@@ -46,6 +61,15 @@ public sealed class UnaryLocBundleProcessorStepTests
 
     private sealed class ReturningProcessor(LocBundle output) : UnaryLocBundleProcessor
     {
-        public override LocBundle Process(LocBundle bundle) => output;
+        public override LocBundle Process(LocBundle bundle, DiagnosticCollection? diagnostics = null) => output;
+    }
+
+    private sealed class ReportingProcessor : UnaryLocBundleProcessor
+    {
+        public override LocBundle Process(LocBundle bundle, DiagnosticCollection? diagnostics = null)
+        {
+            diagnostics?.AddError("Test.ProcessorError", "processor failed");
+            return bundle;
+        }
     }
 }

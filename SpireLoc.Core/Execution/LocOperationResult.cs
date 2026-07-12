@@ -18,11 +18,16 @@ public sealed class LocOperationResult
     {
         ArgumentNullException.ThrowIfNull(workspace);
         Workspace = workspace;
-        Diagnostics = (diagnostics ?? []).ToArray();
+        Diagnostics = diagnostics switch
+        {
+            null => new DiagnosticCollection(),
+            DiagnosticCollection collection => collection,
+            _ => new DiagnosticCollection(diagnostics),
+        };
         Status = status;
     }
 
     public LocWorkspace Workspace { get; }
-    public IReadOnlyList<Diagnostic> Diagnostics { get; }
+    public DiagnosticCollection Diagnostics { get; }
     public LocOperationStatus Status { get; }
 }

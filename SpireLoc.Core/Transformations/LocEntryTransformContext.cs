@@ -7,13 +7,11 @@ namespace SpireLoc.Core.Transformations;
 /// <summary>Describes an entry's bundle position and provides an optional diagnostic sink for transforms.</summary>
 public sealed class LocEntryTransformContext
 {
-    private readonly Action<Diagnostic>? _report;
-
     public LocEntryTransformContext(
         LocTablePath tablePath,
         int entryIndex,
         LocExecutionContext operationContext,
-        Action<Diagnostic>? report = null)
+        DiagnosticCollection? diagnostics = null)
     {
         ArgumentNullException.ThrowIfNull(tablePath);
         ArgumentOutOfRangeException.ThrowIfNegative(entryIndex);
@@ -22,17 +20,18 @@ public sealed class LocEntryTransformContext
         TablePath = tablePath;
         EntryIndex = entryIndex;
         OperationContext = operationContext;
-        _report = report;
+        Diagnostics = diagnostics;
     }
 
     public LocTablePath TablePath { get; }
     public int EntryIndex { get; }
     public LocExecutionContext OperationContext { get; }
+    public DiagnosticCollection? Diagnostics { get; }
 
     public void Report(Diagnostic diagnostic)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
-        _report?.Invoke(diagnostic with { Message = $"[{TablePath}#{EntryIndex}] {diagnostic.Message}" });
+        Diagnostics?.Add(diagnostic with { Message = $"[{TablePath}#{EntryIndex}] {diagnostic.Message}" });
     }
 
     public void ReportWarning(string code, string message) =>

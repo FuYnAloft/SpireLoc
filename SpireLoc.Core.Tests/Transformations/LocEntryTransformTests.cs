@@ -13,14 +13,15 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void ContextReportsPositionAndPreservesOperationContext()
     {
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         var operationContext = new LocExecutionContext();
         var context = new LocEntryTransformContext(
-            new LocTablePath("zhs", "cards"), 4, operationContext, diagnostics.Add);
+            new LocTablePath("zhs", "cards"), 4, operationContext, diagnostics);
 
         context.ReportWarning("Test.Warning", "details");
 
         Assert.Same(operationContext, context.OperationContext);
+        Assert.Same(diagnostics, context.Diagnostics);
         Assert.Collection(diagnostics, diagnostic =>
         {
             Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
@@ -41,7 +42,7 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void ReversibleBaseReportsNonReversibleTransform()
     {
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         var transform = new NonReversibleTransform();
 
         var result = transform.ToGame(Entry("key", "value"), Context(diagnostics));
@@ -76,7 +77,7 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void ModelIdTransformPreservesUppercaseSourceIdAndUnknownGameId()
     {
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         var transform = ModelIdTransform.Prefixed(0, "MOD-");
 
         var source = transform.ToGame(Entry("EXTERNAL-ID", "value"), Context(diagnostics));
@@ -90,7 +91,7 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void ModelIdTransformReportsOutOfRangeRuleAndLeavesEntryUnchanged()
     {
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         var transform = ModelIdTransform.Prefixed(2, "MOD-");
         var entry = Entry("OnlySegment", "value");
 
@@ -130,13 +131,13 @@ public sealed class LocEntryTransformTests
     [Fact]
     public void AncientModelIdTransformReportsNonReversibilityOnlyOnce()
     {
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         var transform = new AncientModelIdTransform("", "");
         var source = new LocEntry(["Custom.Ancient", "pages", "INITIAL", "description"], "value");
 
         transform.ToGame(source, Context(diagnostics));
 
-        Assert.Single(diagnostics.Where(diagnostic => diagnostic.Code == "EntryTransform.NonReversible"));
+        Assert.Single(diagnostics, diagnostic => diagnostic.Code == "EntryTransform.NonReversible");
     }
 
     [Theory]
@@ -208,9 +209,9 @@ public sealed class LocEntryTransformTests
 
     private static LocEntry Entry(string key, string value) => new([key], value);
 
-    private static LocEntryTransformContext Context(List<Diagnostic>? diagnostics = null) =>
+    private static LocEntryTransformContext Context(DiagnosticCollection? diagnostics = null) =>
         new(new LocTablePath("zhs", "cards"), 0, LocExecutionContext.Default,
-            diagnostics is null ? null : diagnostics.Add);
+            diagnostics);
 
     private sealed class NonReversibleTransform : ReversibleLocEntryTransform
     {

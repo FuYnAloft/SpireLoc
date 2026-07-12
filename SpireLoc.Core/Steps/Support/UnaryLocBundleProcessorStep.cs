@@ -31,27 +31,30 @@ public sealed class UnaryLocBundleProcessorStep : ILocOperation
         ArgumentNullException.ThrowIfNull(context);
 
         LocBundle input;
+        var diagnostics = new DiagnosticCollection();
         try
         {
             input = workspace.Require<LocBundle>(FromSlot);
         }
         catch (LocWorkspaceException exception)
         {
-            return Failure(workspace, "UnaryLocBundleProcessorStep.Input", exception.Message);
+            diagnostics.AddException("UnaryLocBundleProcessorStep.Input", exception);
+            return new LocOperationResult(workspace, diagnostics, LocOperationStatus.Failed);
         }
 
         try
         {
-            var output = Processor.Process(input)
+            var output = Processor.Process(input, diagnostics)
                 ?? throw new InvalidOperationException("The bundle processor returned null.");
-            return new LocOperationResult(workspace.Set(ToSlot, output));
+            return new LocOperationResult(
+                workspace.Set(ToSlot, output),
+                diagnostics,
+                diagnostics.HasErrors ? LocOperationStatus.Failed : LocOperationStatus.Succeeded);
         }
         catch (Exception exception)
         {
-            return Failure(workspace, "UnaryLocBundleProcessorStep.Process", exception.Message);
+            diagnostics.AddException("UnaryLocBundleProcessorStep.Process", exception);
+            return new LocOperationResult(workspace, diagnostics, LocOperationStatus.Failed);
         }
     }
-
-    private static LocOperationResult Failure(LocWorkspace workspace, string code, string message) =>
-        new(workspace, [Diagnostic.Error(code, message)], LocOperationStatus.Failed);
 }

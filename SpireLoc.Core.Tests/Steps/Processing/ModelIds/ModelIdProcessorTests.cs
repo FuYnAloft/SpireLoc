@@ -1,3 +1,4 @@
+using SpireLoc.Core.Diagnostics;
 using SpireLoc.Core.Models;
 using SpireLoc.Core.Steps.Processing.ModelIds;
 using Xunit;
@@ -114,6 +115,18 @@ public sealed class ModelIdProcessorTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new VanillaModelIdProcessor((ModelIdDirection)42));
+    }
+
+    [Fact]
+    public void ProcessorForwardsTransformDiagnosticsToTheProvidedCollection()
+    {
+        var diagnostics = new DiagnosticCollection();
+        var bundle = Bundle(("cards", [Entry(["unexpected", "title"])]));
+
+        new BaseLibModelIdProcessor(ModelIdDirection.ToSource, "myMod").Process(bundle, diagnostics);
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "ModelIdTransform.UnexpectedGameId");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.StartsWith("[zhs/cards#0]", StringComparison.Ordinal));
     }
 
     private static string Key(LocBundle bundle, string tableName) => bundle[Path(tableName)][0].Key[0];

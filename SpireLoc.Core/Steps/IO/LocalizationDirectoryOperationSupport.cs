@@ -37,7 +37,7 @@ internal static class LocalizationDirectoryOperationSupport
             }
         }
 
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         if (!Directory.Exists(rootPath))
             return Failure(workspace, "LocalizationDirectory.RootNotFound", $"Localization root '{rootPath}' does not exist.");
 
@@ -61,18 +61,18 @@ internal static class LocalizationDirectoryOperationSupport
                     }
                     catch (Exception exception)
                     {
-                        diagnostics.Add(Diagnostic.Error(
+                        diagnostics.AddError(
                             "LocalizationDirectory.ReadFile",
-                            $"Could not read localization file '{file}': {exception.Message}"));
+                            $"Could not read localization file '{file}': {exception.Message}");
                     }
                 }
             }
         }
         catch (Exception exception)
         {
-            diagnostics.Add(Diagnostic.Error(
+            diagnostics.AddError(
                 "LocalizationDirectory.Enumerate",
-                $"Could not enumerate localization root '{rootPath}': {exception.Message}"));
+                $"Could not enumerate localization root '{rootPath}': {exception.Message}");
         }
 
         var loaded = new LocBundle(tables);
@@ -81,7 +81,7 @@ internal static class LocalizationDirectoryOperationSupport
         return new LocOperationResult(
             nextWorkspace,
             diagnostics,
-            diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            diagnostics.HasErrors
                 ? LocOperationStatus.Failed
                 : LocOperationStatus.Succeeded);
     }
@@ -109,7 +109,7 @@ internal static class LocalizationDirectoryOperationSupport
             return Failure(workspace, "LocalizationDirectory.WriteInput", exception.Message);
         }
 
-        var diagnostics = new List<Diagnostic>();
+        var diagnostics = new DiagnosticCollection();
         var files = new List<(string Path, string Text)>();
         foreach (var (tablePath, table) in bundle
                      .OrderBy(static pair => pair.Key.Language, StringComparer.Ordinal)
@@ -125,9 +125,9 @@ internal static class LocalizationDirectoryOperationSupport
             }
             catch (Exception exception)
             {
-                diagnostics.Add(Diagnostic.Error(
+                diagnostics.AddError(
                     "LocalizationDirectory.WriteTable",
-                    $"Could not serialize localization table '{tablePath}': {exception.Message}"));
+                    $"Could not serialize localization table '{tablePath}': {exception.Message}");
             }
         }
 
@@ -143,9 +143,9 @@ internal static class LocalizationDirectoryOperationSupport
             }
             catch (Exception exception)
             {
-                diagnostics.Add(Diagnostic.Error(
+                diagnostics.AddError(
                     "LocalizationDirectory.WriteFile",
-                    $"Could not write localization file '{path}': {exception.Message}"));
+                    $"Could not write localization file '{path}': {exception.Message}");
             }
         }
 
@@ -156,7 +156,14 @@ internal static class LocalizationDirectoryOperationSupport
     }
 
     private static LocOperationResult Failure(LocWorkspace workspace, string code, string message) =>
-        new(workspace, [Diagnostic.Error(code, message)], LocOperationStatus.Failed);
+        new(workspace, CreateErrorDiagnostics(code, message), LocOperationStatus.Failed);
+
+    private static DiagnosticCollection CreateErrorDiagnostics(string code, string message)
+    {
+        var diagnostics = new DiagnosticCollection();
+        diagnostics.AddError(code, message);
+        return diagnostics;
+    }
 
     private static string NormalizeNewlines(string text) =>
         text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
