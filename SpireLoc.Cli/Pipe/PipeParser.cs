@@ -1,31 +1,59 @@
-using System.Globalization;
+using SpireLoc.Cli.Pipeline;
 using SpireLoc.Cli.Registration;
-using SpireLoc.Core.Execution;
 
 namespace SpireLoc.Cli.Pipe;
 
 internal sealed class PipeParser(OperationRegistry registry)
 {
-    public IReadOnlyList<ILocOperation> Parse(IReadOnlyList<string> tokens)
+    public IReadOnlyList<PipelineItem> Parse(IReadOnlyList<string> tokens)
     {
         if (tokens.Count == 0)
-            throw new CliException("The pipe command requires at least one operation step.");
+            throw new CliException("The pipe command requires at least one pipeline item.");
 
-        var operations = new List<ILocOperation>();
+        var items = new List<PipelineItem>();
         var index = 0;
         while (index < tokens.Count)
         {
-            var descriptor = registry.Resolve(tokens, index, out var pathTokenCount);
-            index += pathTokenCount;
-
-            var values = BindStep(descriptor, tokens, ref index);
-            operations.Add(descriptor.Create(values));
+            if (string.Equals(tokens[index], $"--{OperationRegistry.ActionHead}", StringComparison.Ordinal))
+                items.Add(ParseAction(tokens, ref index));
+            else
+                items.Add(ParseOperation(tokens, ref index));
         }
 
-        return operations;
+        return items;
     }
 
-    private IReadOnlyDictionary<string, object?> BindStep(
+    private OperationInvocationSpec ParseOperation(IReadOnlyList<string> tokens, ref int index)
+    {
+        var descriptor = registry.Resolve(tokens, index, out var pathTokenCount);
+        index += pathTokenCount;
+
+        var arguments = BindOperationTokens(descriptor, tokens, ref index);
+        return new OperationInvocationSpec(
+            descriptor.Path,
+            arguments,
+            new InvocationSource($"pipe -> {descriptor.DisplayPath}"));
+    }
+
+    private ActionInvocationSpec ParseAction(IReadOnlyList<string> tokens, ref int index)
+    {
+        index++;
+        if (index >= tokens.Count || registry.IsStepHead(tokens[index]) ||
+            tokens[index].StartsWith("--", StringComparison.Ordinal))
+            throw new CliException("The '--action' item requires an action file path.");
+
+        var actionPath = tokens[index++];
+        var arguments = new List<string>();
+        while (index < tokens.Count && !registry.IsStepHead(tokens[index]))
+            arguments.Add(tokens[index++]);
+
+        return new ActionInvocationSpec(
+            actionPath,
+            arguments,
+            new InvocationSource($"pipe -> --action {actionPath}"));
+    }
+
+    private IReadOnlyDictionary<string, InvocationScalar> BindOperationTokens(
         OperationFactoryDescriptor descriptor,
         IReadOnlyList<string> tokens,
         ref int index)
@@ -36,7 +64,7 @@ internal sealed class PipeParser(OperationRegistry registry)
         var positional = descriptor.Parameters.Where(static parameter => parameter.Position >= 0)
             .OrderBy(static parameter => parameter.Position)
             .ToArray();
-        var values = new Dictionary<string, object?>(StringComparer.Ordinal);
+        var values = new Dictionary<string, InvocationScalar>(StringComparer.Ordinal);
 
         while (index < tokens.Count && !registry.IsStepHead(tokens[index]))
         {
@@ -52,7 +80,7 @@ internal sealed class PipeParser(OperationRegistry registry)
                 index++;
                 if (parameter.IsFlag)
                 {
-                    values.Add(parameter.Name, true);
+                    values.Add(parameter.Name, InvocationScalar.Boolean(true));
                     continue;
                 }
 
@@ -60,8 +88,7 @@ internal sealed class PipeParser(OperationRegistry registry)
                     tokens[index].StartsWith("--", StringComparison.Ordinal))
                     throw new CliException($"Option '--{parameter.Name}' for '{descriptor.DisplayPath}' requires a value.");
 
-                values.Add(parameter.Name, ConvertValue(tokens[index], parameter, descriptor));
-                index++;
+                values.Add(parameter.Name, InvocationScalar.String(tokens[index++]));
                 continue;
             }
 
@@ -69,57 +96,10 @@ internal sealed class PipeParser(OperationRegistry registry)
             if (positionalParameter is null)
                 throw new CliException($"Unexpected positional value '{token}' for step '{descriptor.DisplayPath}'.");
 
-            values.Add(
-                positionalParameter.Name,
-                ConvertValue(token, positionalParameter, descriptor));
+            values.Add(positionalParameter.Name, InvocationScalar.String(token));
             index++;
         }
 
-        foreach (var parameter in descriptor.Parameters)
-        {
-            if (values.ContainsKey(parameter.Name))
-                continue;
-            if (!parameter.HasDefaultValue)
-            {
-                throw new CliException(
-                    $"Missing required parameter '{parameter.Name}' for step '{descriptor.DisplayPath}'.");
-            }
-
-            values.Add(parameter.Name, parameter.DefaultValue);
-        }
-
         return values;
-    }
-
-    private static object ConvertValue(
-        string value,
-        OperationParameterDescriptor parameter,
-        OperationFactoryDescriptor descriptor)
-    {
-        var targetType = Nullable.GetUnderlyingType(parameter.ValueType) ?? parameter.ValueType;
-        try
-        {
-            if (targetType == typeof(string))
-                return value;
-            if (targetType == typeof(bool))
-                return bool.Parse(value);
-            if (targetType.IsEnum)
-                return Enum.Parse(targetType, value, ignoreCase: true);
-            if (targetType == typeof(FileInfo))
-                return new FileInfo(value);
-            if (targetType == typeof(DirectoryInfo))
-                return new DirectoryInfo(value);
-            if (targetType == typeof(Guid))
-                return Guid.Parse(value);
-            if (targetType == typeof(TimeSpan))
-                return TimeSpan.Parse(value, CultureInfo.InvariantCulture);
-
-            return Convert.ChangeType(value, targetType, CultureInfo.InvariantCulture);
-        }
-        catch (Exception exception) when (exception is FormatException or InvalidCastException or OverflowException or ArgumentException)
-        {
-            throw new CliException(
-                $"Value '{value}' is not valid for parameter '{parameter.Name}' on '{descriptor.DisplayPath}'.");
-        }
     }
 }

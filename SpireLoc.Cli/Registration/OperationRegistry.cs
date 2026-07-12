@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using SpireLoc.Cli.Pipeline;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Registration;
 using SpireLoc.Core.Steps.Support;
@@ -8,7 +9,11 @@ namespace SpireLoc.Cli.Registration;
 
 internal sealed class OperationRegistry
 {
+    public const string ActionHead = "action";
+    public const string KindParameterName = "kind";
+
     private readonly Dictionary<string, OperationFactoryDescriptor[]> _byHead;
+    private readonly Dictionary<string, OperationFactoryDescriptor> _byPath;
     private readonly HashSet<string> _heads;
 
     private OperationRegistry(IReadOnlyList<OperationFactoryDescriptor> descriptors)
@@ -24,10 +29,22 @@ internal sealed class OperationRegistry
         if (duplicate is not null)
             throw new CliException($"Operation path '{duplicate.First().DisplayPath}' is registered more than once.");
 
+        if (Descriptors.Any(static descriptor => descriptor.Path[0] == ActionHead))
+            throw new CliException($"Operation head '--{ActionHead}' is reserved for action expansion.");
+
         _heads = Descriptors.Select(static descriptor => descriptor.Path[0])
             .ToHashSet(StringComparer.Ordinal);
+        _heads.Add(ActionHead);
         foreach (var descriptor in Descriptors)
         {
+            var kindConflict = descriptor.Parameters.FirstOrDefault(static parameter =>
+                parameter.Name == KindParameterName);
+            if (kindConflict is not null)
+            {
+                throw new CliException(
+                    $"Parameter '--{KindParameterName}' on '{descriptor.DisplayPath}' is reserved for operation subcommands.");
+            }
+
             var conflict = descriptor.Parameters.FirstOrDefault(parameter => _heads.Contains(parameter.Name));
             if (conflict is not null)
             {
@@ -42,6 +59,9 @@ internal sealed class OperationRegistry
                 static group => group.Key,
                 static group => group.OrderByDescending(static descriptor => descriptor.Path.Count).ToArray(),
                 StringComparer.Ordinal);
+        _byPath = Descriptors.ToDictionary(
+            static descriptor => PathKey(descriptor.Path),
+            StringComparer.Ordinal);
     }
 
     public IReadOnlyList<OperationFactoryDescriptor> Descriptors { get; }
@@ -79,6 +99,8 @@ internal sealed class OperationRegistry
         token.StartsWith("--", StringComparison.Ordinal) &&
         token.Length > 2 &&
         _heads.Contains(token[2..]);
+
+    public bool IsStepHeadName(string name) => _heads.Contains(name);
 
     public OperationFactoryDescriptor Resolve(IReadOnlyList<string> tokens, int startIndex, out int consumed)
     {
@@ -119,6 +141,13 @@ internal sealed class OperationRegistry
             .Distinct(StringComparer.Ordinal);
         throw new CliException(
             $"Unknown subcommand for '--{head}'. Expected one of: {string.Join(", ", variants)}.");
+    }
+
+    public OperationFactoryDescriptor Resolve(IReadOnlyList<string> path, InvocationSource source)
+    {
+        if (_byPath.TryGetValue(PathKey(path), out var descriptor))
+            return descriptor;
+        throw source.Error($"Unknown operation path '--{path[0]} {string.Join(' ', path.Skip(1))}'.");
     }
 
     private static OperationFactoryDescriptor CreateDescriptor(MethodBase member, OperationFactoryAttribute attribute)
@@ -296,4 +325,6 @@ internal sealed class OperationRegistry
 
     private static CliException RegistrationError(MemberInfo member, string message) =>
         new($"Invalid operation factory '{member.DeclaringType!.FullName}.{member.Name}': {message}");
+
+    private static string PathKey(IEnumerable<string> path) => string.Join('\0', path);
 }

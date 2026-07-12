@@ -1,4 +1,5 @@
 using System.Reflection;
+using SpireLoc.Cli.Pipeline;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Steps.Support;
 
@@ -16,8 +17,37 @@ internal sealed class OperationFactoryDescriptor(
 
     public string DisplayPath => $"--{Path[0]} {string.Join(' ', Path.Skip(1))}".TrimEnd();
 
-    public ILocOperation Create(IReadOnlyDictionary<string, object?> values)
+    public ILocOperation Create(OperationInvocationSpec invocation)
     {
+        var parametersByName = Parameters.ToDictionary(static parameter => parameter.Name, StringComparer.Ordinal);
+        var unknown = invocation.Arguments.Keys.FirstOrDefault(name => !parametersByName.ContainsKey(name));
+        if (unknown is not null)
+            throw invocation.Source.Error($"Unknown parameter '{unknown}' for step '{DisplayPath}'.");
+
+        var values = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var parameter in Parameters)
+        {
+            if (invocation.Arguments.TryGetValue(parameter.Name, out var scalar))
+            {
+                try
+                {
+                    values.Add(parameter.Name, InvocationScalarConverter.ConvertTo(scalar, parameter.ValueType));
+                }
+                catch (Exception exception) when (exception is FormatException or InvalidCastException or
+                                                   OverflowException or ArgumentException)
+                {
+                    throw invocation.Source.Error(
+                        $"Value '{scalar.FormatInvariant()}' is not valid for parameter '{parameter.Name}' on '{DisplayPath}'.");
+                }
+
+                continue;
+            }
+
+            if (!parameter.HasDefaultValue)
+                throw invocation.Source.Error($"Missing required parameter '{parameter.Name}' for step '{DisplayPath}'.");
+            values.Add(parameter.Name, parameter.DefaultValue);
+        }
+
         var arguments = new object?[invocationParameterCount];
         foreach (var parameter in Parameters.Where(static parameter => parameter.InvocationIndex >= 0))
             arguments[parameter.InvocationIndex] = values[parameter.Name];
@@ -30,11 +60,11 @@ internal sealed class OperationFactoryDescriptor(
         catch (TargetInvocationException exception)
         {
             var cause = exception.InnerException ?? exception;
-            throw new CliException($"Could not create step '{DisplayPath}': {cause.Message}", cause);
+            throw new CliException($"{invocation.Source.Description}: Could not create step '{DisplayPath}': {cause.Message}", cause);
         }
         catch (Exception exception)
         {
-            throw new CliException($"Could not create step '{DisplayPath}': {exception.Message}", exception);
+            throw new CliException($"{invocation.Source.Description}: Could not create step '{DisplayPath}': {exception.Message}", exception);
         }
 
         if (!producesUnaryProcessor)

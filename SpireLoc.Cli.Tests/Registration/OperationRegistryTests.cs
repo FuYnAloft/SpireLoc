@@ -1,4 +1,5 @@
 using SpireLoc.Cli.Pipe;
+using SpireLoc.Cli.Pipeline;
 using SpireLoc.Cli.Registration;
 using SpireLoc.Core.Diagnostics;
 using SpireLoc.Core.Execution;
@@ -18,7 +19,7 @@ public sealed class OperationRegistryTests
     {
         var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
 
-        var operations = new PipeParser(registry).Parse([
+        var operations = ParseAndCompile(registry, [
             "--input", "yaml", "./source", "--to", "source",
             "--model-id", "ritsulib", "TestMod", "--reversed", "--from", "source", "--to", "game",
             "--output", "flat-json", "./output", "--from", "game",
@@ -50,7 +51,7 @@ public sealed class OperationRegistryTests
     {
         var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
 
-        var operations = new PipeParser(registry).Parse([
+        var operations = ParseAndCompile(registry, [
             "--model-id", "ritsulib", "--mod-id", "TestMod",
         ]);
 
@@ -66,7 +67,7 @@ public sealed class OperationRegistryTests
     {
         var registry = OperationRegistry.Scan(typeof(OperationRegistryTests).Assembly);
 
-        var operations = new PipeParser(registry).Parse([
+        var operations = ParseAndCompile(registry, [
             "--fixture", "static-operation", "first",
             "--fixture", "constructor-operation", "second",
             "--fixture", "static-unary", "third", "--from", "a", "--to", "b",
@@ -97,7 +98,7 @@ public sealed class OperationRegistryTests
         var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
 
         var exception = Assert.Throws<CliException>(() =>
-            new PipeParser(registry).Parse(command.Split('|')));
+            ParseAndCompile(registry, command.Split('|')));
 
         Assert.Contains(expectedMessage, exception.Message, StringComparison.Ordinal);
     }
@@ -145,5 +146,13 @@ public sealed class OperationRegistryTests
         public override LocBundle Process(LocBundle bundle, DiagnosticCollection? diagnostics = null) => bundle;
 
         public override string ToString() => value;
+    }
+
+    private static IReadOnlyList<ILocOperation> ParseAndCompile(
+        OperationRegistry registry,
+        IReadOnlyList<string> tokens)
+    {
+        var invocations = new PipeParser(registry).Parse(tokens).Cast<OperationInvocationSpec>().ToArray();
+        return new OperationCompiler(registry).Compile(invocations);
     }
 }

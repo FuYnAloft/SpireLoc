@@ -16,4 +16,8 @@
         <ProjectReference Include="..\SpireLoc.Core\SpireLoc.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="YamlDotNet" Version="18.0.0" />
+    </ItemGroup>
+
 </Project>
