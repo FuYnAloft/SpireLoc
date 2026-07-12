@@ -23,7 +23,7 @@ public sealed class ReadFlatJsonLocalizationDirectoryOperation(
         {
             if (property.Value.ValueKind != JsonValueKind.String)
                 throw new InvalidOperationException($"Flat localization key '{property.Name}' must have a string value.");
-            entries.Add(new LocEntry([property.Name], property.Value.GetString()!));
+            entries.Add(new LocEntry(property.Name.Split('.'), property.Value.GetString()!));
         }
 
         return new LocTable(entries);
@@ -48,11 +48,9 @@ public sealed class WriteFlatJsonLocalizationDirectoryOperation(
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in table)
         {
-            if (entry.Key.Count != 1)
-                throw new InvalidOperationException(
-                    $"Flat JSON requires one key segment, but found '{string.Join('.', entry.Key)}'.");
-            if (!values.TryAdd(entry.Key[0], entry.Value))
-                throw new InvalidOperationException($"Flat JSON key '{entry.Key[0]}' occurs more than once.");
+            var key = string.Join('.', entry.Key);
+            if (!values.TryAdd(key, entry.Value))
+                throw new InvalidOperationException($"Flat JSON key '{key}' occurs more than once.");
         }
 
         return JsonSerializer.Serialize(values, Options);

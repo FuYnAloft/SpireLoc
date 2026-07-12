@@ -206,7 +206,7 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
 
     private static LocBundle FlatBundle() => new(new Dictionary<LocTablePath, LocTable>
     {
-        [new LocTablePath("zhs", "cards")] = new([new LocEntry(["MOD-CARD.title"], "Strike")])
+        [new LocTablePath("zhs", "cards")] = new([new LocEntry(["MOD-CARD", "title"], "Strike")])
     });
 
     private static void AssertBundlesEqual(LocBundle expected, LocBundle actual)
