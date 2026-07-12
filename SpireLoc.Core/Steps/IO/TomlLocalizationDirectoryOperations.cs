@@ -6,10 +6,10 @@ using SpireLoc.Core.Registration;
 
 namespace SpireLoc.Core.Steps.IO;
 
-[method: OperationFactory("input", "toml")]
+[method: OperationFactory("input", "toml", Description = "Read a directory of nested TOML localization files.")]
 public sealed class ReadTomlLocalizationDirectoryOperation(
-    [OperationParameter("path", 0)] string rootPath,
-    [OperationParameter("to")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    [OperationParameter("path", 0, Description = "Root localization directory.")] string rootPath,
+    [OperationParameter("to", Description = "Destination workspace slot.")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
     : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
@@ -22,10 +22,10 @@ public sealed class ReadTomlLocalizationDirectoryOperation(
     }
 }
 
-[method: OperationFactory("output", "toml")]
+[method: OperationFactory("output", "toml", Description = "Write nested TOML localization files to a directory.")]
 public sealed class WriteTomlLocalizationDirectoryOperation(
-    [OperationParameter("path", 0)] string rootPath,
-    [OperationParameter("from")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    [OperationParameter("path", 0, Description = "Root localization directory.")] string rootPath,
+    [OperationParameter("from", Description = "Source workspace slot.")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
     : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>

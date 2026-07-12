@@ -32,7 +32,10 @@ internal static class Program
             if (string.Equals(args[0], "action", StringComparison.Ordinal))
                 return RunAction(args, registry);
 
-            throw new CliException($"Unknown command '{args[0]}'. Expected 'pipe' or 'action'.");
+            if (string.Equals(args[0], "operation", StringComparison.Ordinal))
+                return RunOperation(args, registry);
+
+            throw new CliException($"Unknown command '{args[0]}'. Expected 'pipe', 'action', or 'operation'.");
         }
         catch (CliException exception)
         {
@@ -48,6 +51,7 @@ internal static class Program
         Console.WriteLine("Commands:");
         Console.WriteLine("  pipe    Build and execute a localization operation pipeline.");
         Console.WriteLine("  action  Run or inspect reusable YAML actions.");
+        Console.WriteLine("  operation  Inspect registered operations.");
     }
 
     private static void PrintPipeHelp(OperationRegistry registry)
@@ -77,8 +81,16 @@ internal static class Program
             return 0;
         }
 
+        if (string.Equals(args[1], "help", StringComparison.Ordinal))
+        {
+            if (args.Count != 3)
+                throw new CliException("Usage: spireloc action help <action>");
+            command.PrintHelp(args[2]);
+            return 0;
+        }
+
         if (!string.Equals(args[1], "run", StringComparison.Ordinal))
-            throw new CliException($"Unknown action command '{args[1]}'. Expected 'run' or 'list'.");
+            throw new CliException($"Unknown action command '{args[1]}'. Expected 'run', 'list', or 'help'.");
         if (args is [_, _, "--help" or "-h"])
         {
             Console.WriteLine("Usage: spireloc action run <action> [action arguments]");
@@ -95,6 +107,34 @@ internal static class Program
         return command.Run(args[2], args.Skip(3).ToArray());
     }
 
+    private static int RunOperation(IReadOnlyList<string> args, OperationRegistry registry)
+    {
+        var command = new OperationCommand(registry, Console.Out);
+        if (args.Count == 1 || args.Count == 2 && args[1] is "--help" or "-h")
+        {
+            PrintOperationHelp();
+            return 0;
+        }
+
+        if (string.Equals(args[1], "list", StringComparison.Ordinal))
+        {
+            if (args.Count != 2)
+                throw new CliException("The 'operation list' command does not accept arguments.");
+            command.List();
+            return 0;
+        }
+
+        if (string.Equals(args[1], "help", StringComparison.Ordinal))
+        {
+            if (args.Count < 3)
+                throw new CliException("The 'operation help' command requires an operation path.");
+            command.PrintHelp(args.Skip(2).ToArray());
+            return 0;
+        }
+
+        throw new CliException($"Unknown operation command '{args[1]}'. Expected 'list' or 'help'.");
+    }
+
     private static void PrintActionHelp()
     {
         Console.WriteLine("Usage: spireloc action <command>");
@@ -102,5 +142,15 @@ internal static class Program
         Console.WriteLine("Commands:");
         Console.WriteLine("  run <action> [action arguments]  Run an action.");
         Console.WriteLine("  list                             List built-in actions.");
+        Console.WriteLine("  help <action>                    Show help for an action.");
+    }
+
+    private static void PrintOperationHelp()
+    {
+        Console.WriteLine("Usage: spireloc operation <command>");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  list             List registered operation heads.");
+        Console.WriteLine("  help <path...>   Show help for an operation or its subcommands.");
     }
 }

@@ -7,4 +7,5 @@ public sealed class OperationParameterAttribute(string? name = null, int positio
     public string? Name { get; } = name;
     public int Position { get; } = position;
     public bool IsFlag { get; set; }
+    public string? Description { get; set; }
 }

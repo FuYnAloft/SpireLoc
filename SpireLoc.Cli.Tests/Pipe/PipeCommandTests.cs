@@ -45,6 +45,25 @@ public sealed class PipeCommandTests : IDisposable
         Assert.Contains("CustomCard:", File.ReadAllText(Path.Combine(reverted, "zhs", "cards.yaml")));
     }
 
+    [Fact]
+    public void ParseFailureEndingInHelpPointsToOperationHelp()
+    {
+        var error = new StringWriter();
+        var command = new PipeCommand(
+            OperationRegistry.Scan(typeof(ILocOperation).Assembly),
+            new StringWriter(),
+            error);
+
+        var exception = Assert.Throws<CliException>(() => command.Run(["--input", "yaml", "--help"]));
+
+        Assert.Contains("Unknown option '--help'", exception.Message, StringComparison.Ordinal);
+        Assert.EndsWith(
+            "hint: Use 'spireloc operation help <path...>' to inspect an operation.",
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

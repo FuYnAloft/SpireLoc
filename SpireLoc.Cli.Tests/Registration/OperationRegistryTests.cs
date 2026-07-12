@@ -89,6 +89,20 @@ public sealed class OperationRegistryTests
     }
 
     [Fact]
+    public void ScannerPreservesFactoryAndParameterDescriptions()
+    {
+        var registry = OperationRegistry.Scan(typeof(OperationRegistryTests).Assembly);
+        var descriptor = registry.Resolve(
+            ["fixture", "described"],
+            new InvocationSource("test"));
+
+        Assert.Equal("A described processor.", descriptor.Description);
+        Assert.Equal("Value to process.", Assert.Single(descriptor.Parameters, parameter => parameter.Name == "value").Description);
+        Assert.Equal("Source workspace slot.", Assert.Single(descriptor.Parameters, parameter => parameter.Name == "from").Description);
+        Assert.Equal("Destination workspace slot.", Assert.Single(descriptor.Parameters, parameter => parameter.Name == "to").Description);
+    }
+
+    [Fact]
     public void DescriptorBindsStringAndIntegerLists()
     {
         var registry = OperationRegistry.Scan(typeof(OperationRegistryTests).Assembly);
@@ -172,6 +186,11 @@ public sealed class OperationRegistryTests
             [OperationParameter("names", 0)] IReadOnlyList<string> names,
             [OperationParameter("numbers")] IReadOnlyList<int> numbers) =>
             new ListOperation(names, numbers);
+
+        [OperationFactory("fixture", "described", Description = "A described processor.")]
+        public static UnaryLocBundleProcessor CreateDescribed(
+            [OperationParameter("value", 0, Description = "Value to process.")] string value) =>
+            new MarkerProcessor(value);
     }
 
     [method: OperationFactory("fixture", "constructor-operation")]

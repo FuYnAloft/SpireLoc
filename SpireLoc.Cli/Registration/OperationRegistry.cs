@@ -195,6 +195,7 @@ internal sealed class OperationRegistry
 
         return new OperationFactoryDescriptor(
             attribute.Path.ToArray(),
+            attribute.Description,
             parameters,
             memberParameters.Length,
             producesUnaryProcessor,
@@ -237,6 +238,7 @@ internal sealed class OperationRegistry
 
         return new OperationParameterDescriptor(
             name,
+            attribute?.Description,
             parameter.ParameterType,
             listElementType,
             position,
@@ -293,6 +295,7 @@ internal sealed class OperationRegistry
 
         parameters.Add(new OperationParameterDescriptor(
             name,
+            name == "from" ? "Source workspace slot." : "Destination workspace slot.",
             typeof(string),
             null,
             -1,

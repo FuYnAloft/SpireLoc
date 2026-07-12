@@ -7,12 +7,14 @@ namespace SpireLoc.Cli.Registration;
 
 internal sealed class OperationFactoryDescriptor(
     IReadOnlyList<string> path,
+    string? description,
     IReadOnlyList<OperationParameterDescriptor> parameters,
     int invocationParameterCount,
     bool producesUnaryProcessor,
     Func<object?[], object> invoke)
 {
     public IReadOnlyList<string> Path { get; } = path;
+    public string? Description { get; } = description;
     public IReadOnlyList<OperationParameterDescriptor> Parameters { get; } = parameters;
 
     public string DisplayPath => $"--{Path[0]} {string.Join(' ', Path.Skip(1))}".TrimEnd();

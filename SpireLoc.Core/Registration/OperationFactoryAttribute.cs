@@ -5,4 +5,5 @@ namespace SpireLoc.Core.Registration;
 public sealed class OperationFactoryAttribute(params string[] path) : Attribute
 {
     public IReadOnlyList<string> Path { get; } = path;
+    public string? Description { get; set; }
 }
