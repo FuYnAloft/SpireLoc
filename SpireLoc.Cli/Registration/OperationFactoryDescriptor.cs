@@ -27,17 +27,24 @@ internal sealed class OperationFactoryDescriptor(
         var values = new Dictionary<string, object?>(StringComparer.Ordinal);
         foreach (var parameter in Parameters)
         {
-            if (invocation.Arguments.TryGetValue(parameter.Name, out var scalar))
+            if (invocation.Arguments.TryGetValue(parameter.Name, out var argument))
             {
+                if (parameter.IsList != argument.IsList)
+                {
+                    var expectedShape = parameter.IsList ? "a list" : "a scalar";
+                    throw invocation.Source.Error(
+                        $"Parameter '{parameter.Name}' on '{DisplayPath}' requires {expectedShape} value.");
+                }
+
                 try
                 {
-                    values.Add(parameter.Name, InvocationScalarConverter.ConvertTo(scalar, parameter.ValueType));
+                    values.Add(parameter.Name, ConvertArgument(argument, parameter));
                 }
                 catch (Exception exception) when (exception is FormatException or InvalidCastException or
                                                    OverflowException or ArgumentException)
                 {
                     throw invocation.Source.Error(
-                        $"Value '{scalar.FormatInvariant()}' is not valid for parameter '{parameter.Name}' on '{DisplayPath}'.");
+                        $"Value {FormatArgument(argument)} is not valid for parameter '{parameter.Name}' on '{DisplayPath}'.");
                 }
 
                 continue;
@@ -76,22 +83,55 @@ internal sealed class OperationFactoryDescriptor(
             (string)values["to"]!);
     }
 
+    private static object ConvertArgument(
+        InvocationArgument argument,
+        OperationParameterDescriptor parameter)
+    {
+        if (!parameter.IsList)
+        {
+            if (argument.Values.Count != 1)
+            {
+                throw new FormatException(
+                    $"Scalar parameter '{parameter.Name}' requires exactly one value.");
+            }
+
+            return InvocationScalarConverter.ConvertTo(argument.Values[0], parameter.ValueType);
+        }
+
+        var elementType = parameter.ListElementType!;
+        var values = Array.CreateInstance(elementType, argument.Values.Count);
+        for (var index = 0; index < argument.Values.Count; index++)
+        {
+            values.SetValue(
+                InvocationScalarConverter.ConvertTo(argument.Values[index], elementType),
+                index);
+        }
+
+        return values;
+    }
+
+    private static string FormatArgument(InvocationArgument argument) =>
+        argument.Values.Count == 1
+            ? $"'{argument.Values[0].FormatInvariant()}'"
+            : $"[{string.Join(", ", argument.Values.Select(static value => $"'{value.FormatInvariant()}'"))}]";
+
     public string GetUsage()
     {
         var parts = new List<string> { DisplayPath };
         foreach (var parameter in Parameters.Where(static parameter => parameter.Position >= 0)
                      .OrderBy(static parameter => parameter.Position))
         {
-            parts.Add(parameter.HasDefaultValue
-                ? $"[{parameter.Name}]"
-                : $"<{parameter.Name}>");
+            var positional = $"<{parameter.Name}>{(parameter.IsList ? "..." : string.Empty)}";
+            parts.Add(parameter.HasDefaultValue ? $"[{positional}]" : positional);
         }
 
         foreach (var parameter in Parameters.Where(static parameter => parameter.Position < 0))
         {
             var option = parameter.IsFlag
                 ? $"--{parameter.Name}"
-                : $"--{parameter.Name} <value>";
+                : parameter.IsList
+                    ? $"--{parameter.Name} <value> [--{parameter.Name} <value> ...]"
+                    : $"--{parameter.Name} <value>";
             parts.Add(parameter.HasDefaultValue ? $"[{option}]" : option);
         }
 

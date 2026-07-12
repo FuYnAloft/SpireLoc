@@ -138,13 +138,30 @@ internal sealed class ActionExpander
 
         var arguments = step.Arguments.ToDictionary(
             static argument => argument.Key,
-            argument => ActionTemplateExpander.Expand(argument.Value, scope, source),
+            argument => ExpandOperationArgument(argument.Value, scope, source),
             StringComparer.Ordinal);
         var display = $"--{path[0]} {string.Join(' ', path.Skip(1))}".TrimEnd();
         return new OperationInvocationSpec(
             path,
             arguments,
             Source(chain, step.Source, display));
+    }
+
+    private static InvocationArgument ExpandOperationArgument(
+        InvocationArgument argument,
+        IReadOnlyDictionary<string, InvocationScalar> scope,
+        InvocationSource source)
+    {
+        if (!argument.IsList)
+            return InvocationArgument.Scalar(ActionTemplateExpander.Expand(
+                argument.Values.Single(), scope, source));
+
+        var values = argument.Values
+            .Select(value => ActionTemplateExpander.Expand(value, scope, source))
+            .ToArray();
+        if (values.Any(static value => value.Kind == InvocationScalarKind.Boolean))
+            throw source.Error("Operation argument sequences only support string and integer values.");
+        return InvocationArgument.List(values);
     }
 
     private IReadOnlyList<OperationInvocationSpec> ExpandUses(

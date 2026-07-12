@@ -75,10 +75,10 @@ public sealed class BuiltinActionTests : IDisposable
             invocations,
             invocation => Assert.Equal(
                 "builtin-missing-action-path",
-                invocation.Arguments["path"].FormatInvariant()),
+                invocation.Arguments["path"].Values.Single().FormatInvariant()),
             invocation => Assert.Equal(
                 "builtin-missing-action-dir/tail",
-                invocation.Arguments["path"].FormatInvariant()));
+                invocation.Arguments["path"].Values.Single().FormatInvariant()));
     }
 #endif
 

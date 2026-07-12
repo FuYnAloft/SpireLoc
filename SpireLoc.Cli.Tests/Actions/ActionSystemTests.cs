@@ -146,7 +146,7 @@ public sealed class ActionSystemTests : IDisposable
         var invocations = Expander(registry).ExpandAction(
             Path.Combine(_root, "integer.yaml"), ["42"], _root);
 
-        Assert.Equal("value-42", invocations.Single().Arguments["path"].FormatInvariant());
+        Assert.Equal("value-42", invocations.Single().Arguments["path"].Values.Single().FormatInvariant());
     }
 
     [Fact]
@@ -165,6 +165,80 @@ public sealed class ActionSystemTests : IDisposable
 
         Assert.Equal(["model-id", "ritsulib extra"], invocation.FactoryPath);
         Assert.Throws<CliException>(() => new OperationCompiler(registry).Compile([invocation]));
+    }
+
+    [Fact]
+    public void OperationArgumentSequencesPreserveTypesAndExpandEachElement()
+    {
+        Write("list.yaml", """
+            parameters:
+              name:
+                type: string
+                default: alpha
+              count:
+                type: int
+                default: 7
+            steps:
+              - merge:
+                  from: [$(name), $(count), literal, 12, "true"]
+                  empty: []
+            """);
+
+        var invocation = Assert.Single(Expander(CoreRegistry()).ExpandAction(
+            Path.Combine(_root, "list.yaml"), [], _root));
+
+        var values = invocation.Arguments["from"].Values;
+        Assert.Equal(
+            [
+                InvocationScalarKind.String,
+                InvocationScalarKind.Integer,
+                InvocationScalarKind.String,
+                InvocationScalarKind.Integer,
+                InvocationScalarKind.String,
+            ],
+            values.Select(static value => value.Kind));
+        Assert.Equal(["alpha", "7", "literal", "12", "true"],
+            values.Select(static value => value.FormatInvariant()));
+        Assert.True(invocation.Arguments["from"].IsList);
+        Assert.Empty(invocation.Arguments["empty"].Values);
+        Assert.True(invocation.Arguments["empty"].IsList);
+    }
+
+    [Theory]
+    [InlineData("[true]", "only support string and integer")]
+    [InlineData("[[nested]]", "Expected a scalar value")]
+    [InlineData("[{ nested: value }]", "Expected a scalar value")]
+    public void OperationArgumentSequencesRejectUnsupportedElements(string yamlValue, string expectedMessage)
+    {
+        Write("invalid-list.yaml", $$"""
+            steps:
+              - merge:
+                  from: {{yamlValue}}
+            """);
+
+        var exception = Assert.Throws<CliException>(() => Expander(CoreRegistry()).ExpandAction(
+            Path.Combine(_root, "invalid-list.yaml"), [], _root));
+
+        Assert.Contains(expectedMessage, exception.Message);
+    }
+
+    [Fact]
+    public void OperationArgumentSequencesRejectBooleanTemplateResults()
+    {
+        Write("invalid-template-list.yaml", """
+            parameters:
+              enabled:
+                type: bool
+                default: true
+            steps:
+              - merge:
+                  from: [$(enabled)]
+            """);
+
+        var exception = Assert.Throws<CliException>(() => Expander(CoreRegistry()).ExpandAction(
+            Path.Combine(_root, "invalid-template-list.yaml"), [], _root));
+
+        Assert.Contains("only support string and integer", exception.Message);
     }
 
     [Fact]
@@ -253,7 +327,7 @@ public sealed class ActionSystemTests : IDisposable
         var registry = CoreRegistry();
         var escaped = Expander(registry).ExpandAction(Path.Combine(_root, "escaped.yaml"), [], _root);
 
-        Assert.Equal("$(literal)", escaped.Single().Arguments["mod-id"].FormatInvariant());
+        Assert.Equal("$(literal)", escaped.Single().Arguments["mod-id"].Values.Single().FormatInvariant());
         var exception = Assert.Throws<CliException>(() => Expander(registry).ExpandAction(
             Path.Combine(_root, "unknown.yaml"), [], _root));
         Assert.Contains("Unknown template variable 'missing'", exception.Message, StringComparison.Ordinal);

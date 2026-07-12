@@ -88,6 +88,58 @@ public sealed class OperationRegistryTests
         Assert.Equal("main", constructorUnary.ToSlot);
     }
 
+    [Fact]
+    public void DescriptorBindsStringAndIntegerLists()
+    {
+        var registry = OperationRegistry.Scan(typeof(OperationRegistryTests).Assembly);
+        var descriptor = registry.Resolve(
+            ["fixture", "lists"],
+            new InvocationSource("test"));
+
+        var operation = Assert.IsType<ListOperation>(descriptor.Create(new OperationInvocationSpec(
+            descriptor.Path,
+            new Dictionary<string, InvocationArgument>
+            {
+                ["names"] = InvocationArgument.List([
+                    InvocationScalar.String("a"),
+                    InvocationScalar.String("b"),
+                ]),
+                ["numbers"] = InvocationArgument.List([
+                    InvocationScalar.Integer(1),
+                    InvocationScalar.String("2"),
+                ]),
+            },
+            new InvocationSource("test"))));
+
+        Assert.Equal(["a", "b"], operation.Names);
+        Assert.Equal([1, 2], operation.Numbers);
+        Assert.Contains(
+            "--numbers <value> [--numbers <value> ...]",
+            descriptor.GetUsage(),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DescriptorRejectsScalarForListParameter()
+    {
+        var registry = OperationRegistry.Scan(typeof(OperationRegistryTests).Assembly);
+        var descriptor = registry.Resolve(
+            ["fixture", "lists"],
+            new InvocationSource("test"));
+
+        var exception = Assert.Throws<CliException>(() => descriptor.Create(new OperationInvocationSpec(
+            descriptor.Path,
+            new Dictionary<string, InvocationArgument>
+            {
+                ["names"] = InvocationArgument.Scalar(InvocationScalar.String("a")),
+                ["numbers"] = InvocationArgument.List([]),
+            },
+            new InvocationSource("test"))));
+
+        Assert.Contains("Parameter 'names'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("requires a list value", exception.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("--input|yaml", "Missing required parameter 'path'")]
     [InlineData("--model-id|unknown", "Unknown subcommand")]
@@ -114,6 +166,12 @@ public sealed class OperationRegistryTests
         public static UnaryLocBundleProcessor CreateUnary(
             [OperationParameter("value", 0)] string value) =>
             new MarkerProcessor(value);
+
+        [OperationFactory("fixture", "lists")]
+        public static ILocOperation CreateLists(
+            [OperationParameter("names", 0)] IReadOnlyList<string> names,
+            [OperationParameter("numbers")] IReadOnlyList<int> numbers) =>
+            new ListOperation(names, numbers);
     }
 
     [method: OperationFactory("fixture", "constructor-operation")]
@@ -146,6 +204,16 @@ public sealed class OperationRegistryTests
         public override LocBundle Process(LocBundle bundle, DiagnosticCollection? diagnostics = null) => bundle;
 
         public override string ToString() => value;
+    }
+
+    public sealed class ListOperation(
+        IReadOnlyList<string> names,
+        IReadOnlyList<int> numbers) : ILocOperation
+    {
+        public IReadOnlyList<string> Names { get; } = names;
+        public IReadOnlyList<int> Numbers { get; } = numbers;
+
+        public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) => new(workspace);
     }
 
     private static IReadOnlyList<ILocOperation> ParseAndCompile(

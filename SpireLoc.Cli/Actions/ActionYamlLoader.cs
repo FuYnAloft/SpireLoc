@@ -218,9 +218,28 @@ internal sealed class ActionYamlLoader
         bodyFields.Remove("kind");
         var arguments = bodyFields.ToDictionary(
             static field => field.Key,
-            field => ReadScalar(filePath, field.Value),
+            field => ReadOperationArgument(filePath, field.Value),
             StringComparer.Ordinal);
         return new ActionOperationStep(head, kind, arguments, condition, Location(filePath, node));
+    }
+
+    private static InvocationArgument ReadOperationArgument(string filePath, YamlNode node)
+    {
+        if (node is YamlScalarNode)
+            return InvocationArgument.Scalar(ReadScalar(filePath, node));
+        if (node is YamlSequenceNode sequence)
+            return InvocationArgument.List(sequence.Children
+                .Select(child => ReadOperationArgumentElement(filePath, child))
+                .ToArray());
+        throw Error(filePath, node, "Operation argument must be a scalar or scalar sequence.");
+    }
+
+    private static InvocationScalar ReadOperationArgumentElement(string filePath, YamlNode node)
+    {
+        var value = ReadScalar(filePath, node);
+        if (value.Kind == InvocationScalarKind.Boolean)
+            throw Error(filePath, node, "Operation argument sequences only support string and integer values.");
+        return value;
     }
 
     private static IReadOnlyList<InvocationScalar> ParseKind(string filePath, YamlNode node)

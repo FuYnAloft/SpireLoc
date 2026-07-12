@@ -42,7 +42,7 @@ internal abstract record ActionStep(ActionCondition? Condition, ActionSourceLoca
 internal sealed record ActionOperationStep(
     string Head,
     IReadOnlyList<InvocationScalar> Kind,
-    IReadOnlyDictionary<string, InvocationScalar> Arguments,
+    IReadOnlyDictionary<string, InvocationArgument> Arguments,
     ActionCondition? Condition,
     ActionSourceLocation Source) : ActionStep(Condition, Source);
 

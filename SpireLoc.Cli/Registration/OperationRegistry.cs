@@ -214,10 +214,22 @@ internal sealed class OperationRegistry
         var name = attribute?.Name ?? ToKebabCase(parameter.Name!);
         var position = attribute?.Position ?? -1;
         var isFlag = attribute?.IsFlag ?? false;
+        var listElementType = GetSupportedListElementType(parameter.ParameterType);
+
+        if (parameter.ParameterType.IsGenericType &&
+            parameter.ParameterType.GetGenericTypeDefinition() == typeof(IReadOnlyList<>) &&
+            listElementType is null)
+        {
+            throw RegistrationError(
+                member,
+                $"List parameter '{name}' must have element type string or int.");
+        }
 
         ValidateName(name, member);
         if (position < -1)
             throw RegistrationError(member, $"Parameter '{name}' has invalid position {position}.");
+        if (isFlag && listElementType is not null)
+            throw RegistrationError(member, $"List parameter '{name}' cannot be a flag.");
         if (isFlag && parameter.ParameterType != typeof(bool))
             throw RegistrationError(member, $"Flag parameter '{name}' must have type bool.");
         if (isFlag && position >= 0)
@@ -226,6 +238,7 @@ internal sealed class OperationRegistry
         return new OperationParameterDescriptor(
             name,
             parameter.ParameterType,
+            listElementType,
             position,
             isFlag,
             isFlag || parameter.HasDefaultValue,
@@ -260,6 +273,14 @@ internal sealed class OperationRegistry
                 throw RegistrationError(member, "A required positional parameter cannot follow an optional one.");
             }
         }
+
+        var positionalList = positional.FirstOrDefault(static parameter => parameter.IsList);
+        if (positionalList is not null && positionalList.Position != positional.Length - 1)
+        {
+            throw RegistrationError(
+                member,
+                $"Positional list parameter '{positionalList.Name}' must be the last positional parameter.");
+        }
     }
 
     private static void AddInjectedSlotParameter(
@@ -273,6 +294,7 @@ internal sealed class OperationRegistry
         parameters.Add(new OperationParameterDescriptor(
             name,
             typeof(string),
+            null,
             -1,
             false,
             true,
@@ -296,6 +318,18 @@ internal sealed class OperationRegistry
     {
         if (name.Length == 0 || name.Any(char.IsWhiteSpace) || name.StartsWith('-'))
             throw RegistrationError(member, $"Operation parameter name '{name}' is invalid.");
+    }
+
+    private static Type? GetSupportedListElementType(Type parameterType)
+    {
+        if (!parameterType.IsGenericType ||
+            parameterType.GetGenericTypeDefinition() != typeof(IReadOnlyList<>))
+            return null;
+
+        var elementType = parameterType.GetGenericArguments()[0];
+        return elementType == typeof(string) || elementType == typeof(int)
+            ? elementType
+            : null;
     }
 
     private static string ToKebabCase(string value)

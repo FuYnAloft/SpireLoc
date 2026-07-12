@@ -3,6 +3,7 @@ namespace SpireLoc.Cli.Registration;
 internal sealed class OperationParameterDescriptor(
     string name,
     Type valueType,
+    Type? listElementType,
     int position,
     bool isFlag,
     bool hasDefaultValue,
@@ -11,6 +12,8 @@ internal sealed class OperationParameterDescriptor(
 {
     public string Name { get; } = name;
     public Type ValueType { get; } = valueType;
+    public Type? ListElementType { get; } = listElementType;
+    public bool IsList => ListElementType is not null;
     public int Position { get; } = position;
     public bool IsFlag { get; } = isFlag;
     public bool HasDefaultValue { get; } = hasDefaultValue;
