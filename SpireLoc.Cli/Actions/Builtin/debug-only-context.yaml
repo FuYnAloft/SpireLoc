@@ -1,0 +1,14 @@
+version: 1
+description: Debug action exposing the builtin template context.
+parameters:
+  value:
+    type: string
+    description: Value appended to the sentinel directory.
+    position: 0
+steps:
+  - input:
+      kind: yaml
+      path: $(ActionPath)
+  - input:
+      kind: yaml
+      path: $(ActionDir)/$(value)

@@ -47,7 +47,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  pipe    Build and execute a localization operation pipeline.");
-        Console.WriteLine("  action  Run a reusable YAML action.");
+        Console.WriteLine("  action  Run or inspect reusable YAML actions.");
     }
 
     private static void PrintPipeHelp(OperationRegistry registry)
@@ -57,26 +57,50 @@ internal static class Program
         Console.WriteLine("Registered steps:");
         foreach (var descriptor in registry.Descriptors)
             Console.WriteLine($"  {descriptor.GetUsage()}");
-        Console.WriteLine("  --action <file> [action arguments]");
+        Console.WriteLine("  --action <action> [action arguments]");
     }
 
     private static int RunAction(IReadOnlyList<string> args, OperationRegistry registry)
     {
+        var command = new ActionCommand(registry, Console.Out, Console.Error);
         if (args.Count == 1 || args.Count == 2 && args[1] is "--help" or "-h")
         {
-            Console.WriteLine("Usage: spireloc action run <file> [action arguments]");
+            PrintActionHelp();
             return 0;
         }
+
+        if (string.Equals(args[1], "list", StringComparison.Ordinal))
+        {
+            if (args.Count != 2)
+                throw new CliException("The 'action list' command does not accept arguments.");
+            command.List();
+            return 0;
+        }
+
         if (!string.Equals(args[1], "run", StringComparison.Ordinal))
-            throw new CliException($"Unknown action command '{args[1]}'. Expected 'run'.");
+            throw new CliException($"Unknown action command '{args[1]}'. Expected 'run' or 'list'.");
         if (args is [_, _, "--help" or "-h"])
         {
-            Console.WriteLine("Usage: spireloc action run <file> [action arguments]");
+            Console.WriteLine("Usage: spireloc action run <action> [action arguments]");
             return 0;
         }
         if (args.Count < 3)
-            throw new CliException("The 'action run' command requires an action file path.");
+            throw new CliException("The 'action run' command requires an action name or file path.");
+        if (args.Count == 4 && args[3] is "--help" or "-h")
+        {
+            command.PrintHelp(args[2]);
+            return 0;
+        }
 
-        return new ActionCommand(registry, Console.Out, Console.Error).Run(args[2], args.Skip(3).ToArray());
+        return command.Run(args[2], args.Skip(3).ToArray());
+    }
+
+    private static void PrintActionHelp()
+    {
+        Console.WriteLine("Usage: spireloc action <command>");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  run <action> [action arguments]  Run an action.");
+        Console.WriteLine("  list                             List built-in actions.");
     }
 }

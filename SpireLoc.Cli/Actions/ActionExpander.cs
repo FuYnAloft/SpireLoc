@@ -3,12 +3,31 @@ using SpireLoc.Cli.Registration;
 
 namespace SpireLoc.Cli.Actions;
 
-internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry registry)
+internal sealed class ActionExpander
 {
     public const int MaximumDepth = 64;
 
     private static readonly StringComparer PathComparer =
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    private readonly ActionYamlLoader _loader;
+    private readonly BuiltinActionCatalog _builtins;
+    private readonly OperationRegistry _registry;
+
+    public ActionExpander(ActionYamlLoader loader, OperationRegistry registry)
+        : this(loader, new BuiltinActionCatalog(loader, typeof(ActionExpander).Assembly), registry)
+    {
+    }
+
+    public ActionExpander(
+        ActionYamlLoader loader,
+        BuiltinActionCatalog builtins,
+        OperationRegistry registry)
+    {
+        _loader = loader;
+        _builtins = builtins;
+        _registry = registry;
+    }
 
     public IReadOnlyList<OperationInvocationSpec> ExpandPipeline(
         IReadOnlyList<PipelineItem> items,
@@ -24,8 +43,9 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
                     break;
                 case ActionInvocationSpec action:
                     operations.AddRange(ExpandCliAction(
-                        ResolvePath(action.ActionPath, workingDirectory),
+                        action.ActionPath,
                         action.ArgumentTokens,
+                        workingDirectory,
                         action.Source));
                     break;
                 default:
@@ -41,32 +61,42 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
         IReadOnlyList<string> argumentTokens,
         string workingDirectory) =>
         ExpandCliAction(
-            ResolvePath(actionPath, workingDirectory),
+            actionPath,
             argumentTokens,
+            workingDirectory,
             new InvocationSource($"action run -> {actionPath}"));
 
     private IReadOnlyList<OperationInvocationSpec> ExpandCliAction(
-        string fullPath,
+        string actionReference,
         IReadOnlyList<string> argumentTokens,
+        string workingDirectory,
         InvocationSource invocationSource)
     {
-        var document = LoadRoot(fullPath, invocationSource);
+        var document = LoadReference(actionReference, workingDirectory, invocationSource);
         ValidateParameterHeads(document);
         var chain = new List<string> { document.FilePath };
         var source = Source(chain, null, "parameters");
         var parameters = ActionParameterBinder.BindCli(document.Parameters, argumentTokens, source);
-        return ExpandDocument(document, parameters, chain);
+        var resolutionDirectory = document.IsBuiltin
+            ? Path.GetFullPath(workingDirectory)
+            : Path.GetDirectoryName(document.FilePath)!;
+        return ExpandDocument(document, parameters, chain, resolutionDirectory);
     }
 
     private IReadOnlyList<OperationInvocationSpec> ExpandDocument(
         ActionDocument document,
         IReadOnlyDictionary<string, InvocationScalar> parameters,
-        IReadOnlyList<string> chain)
+        IReadOnlyList<string> chain,
+        string resolutionDirectory)
     {
         var scope = new Dictionary<string, InvocationScalar>(parameters, StringComparer.Ordinal)
         {
-            ["ActionPath"] = InvocationScalar.String(document.FilePath),
-            ["ActionDir"] = InvocationScalar.String(Path.GetDirectoryName(document.FilePath)!),
+            ["ActionPath"] = InvocationScalar.String(document.IsBuiltin
+                ? "builtin-missing-action-path"
+                : document.FilePath),
+            ["ActionDir"] = InvocationScalar.String(document.IsBuiltin
+                ? "builtin-missing-action-dir"
+                : Path.GetDirectoryName(document.FilePath)!),
         };
         var operations = new List<OperationInvocationSpec>();
 
@@ -81,7 +111,7 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
                     operations.Add(ExpandOperation(operation, scope, chain));
                     break;
                 case ActionUsesStep uses:
-                    operations.AddRange(ExpandUses(document, uses, scope, chain));
+                    operations.AddRange(ExpandUses(uses, scope, chain, resolutionDirectory));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(step), step, null);
@@ -118,35 +148,27 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
     }
 
     private IReadOnlyList<OperationInvocationSpec> ExpandUses(
-        ActionDocument caller,
         ActionUsesStep step,
         IReadOnlyDictionary<string, InvocationScalar> callerScope,
-        IReadOnlyList<string> chain)
+        IReadOnlyList<string> chain,
+        string resolutionDirectory)
     {
         var source = Source(chain, step.Source, "uses");
         var expandedPath = ActionTemplateExpander.Expand(step.ActionPath, callerScope, source);
         if (expandedPath.Kind != InvocationScalarKind.String || expandedPath.FormatInvariant().Length == 0)
             throw source.Error("Expanded uses path must be a non-empty string.");
 
-        var childPath = ResolvePath((string)expandedPath.Value, Path.GetDirectoryName(caller.FilePath)!);
         if (chain.Count >= MaximumDepth)
             throw source.Error($"Action call depth exceeds the maximum of {MaximumDepth}.");
-        if (chain.Contains(childPath, PathComparer))
+
+        var child = LoadReference((string)expandedPath.Value, resolutionDirectory, source);
+        if (chain.Any(identity => IdentityEquals(identity, child.FilePath)))
         {
-            var cycle = chain.Append(childPath).Select(Path.GetFileName);
+            var cycle = chain.Append(child.FilePath).Select(DisplayIdentity);
             throw source.Error($"Action cycle detected: {string.Join(" -> ", cycle)}.");
         }
 
-        var childChain = chain.Append(childPath).ToArray();
-        ActionDocument child;
-        try
-        {
-            child = loader.Load(childPath);
-        }
-        catch (CliException exception)
-        {
-            throw new CliException($"{FormatChain(childChain)}: {exception.Message}", exception);
-        }
+        var childChain = chain.Append(child.FilePath).ToArray();
 
         ValidateParameterHeads(child);
         var expandedWith = step.With.ToDictionary(
@@ -157,7 +179,10 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
             child.Parameters,
             expandedWith,
             Source(childChain, step.Source, "with"));
-        return ExpandDocument(child, childParameters, childChain);
+        var childResolutionDirectory = child.IsBuiltin
+            ? resolutionDirectory
+            : Path.GetDirectoryName(child.FilePath)!;
+        return ExpandDocument(child, childParameters, childChain, childResolutionDirectory);
     }
 
     private bool EvaluateCondition(
@@ -196,7 +221,7 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
 
     private void ValidateParameterHeads(ActionDocument document)
     {
-        var conflict = document.Parameters.FirstOrDefault(parameter => registry.IsStepHeadName(parameter.Name));
+        var conflict = document.Parameters.FirstOrDefault(parameter => _registry.IsStepHeadName(parameter.Name));
         if (conflict is not null)
         {
             throw new CliException(
@@ -204,11 +229,18 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
         }
     }
 
-    private ActionDocument LoadRoot(string fullPath, InvocationSource source)
+    private ActionDocument LoadReference(
+        string actionReference,
+        string baseDirectory,
+        InvocationSource source)
     {
+        if (_builtins.TryLoad(actionReference, out var builtin))
+            return builtin;
+
+        var fullPath = ResolvePath(actionReference, baseDirectory);
         try
         {
-            return loader.Load(fullPath);
+            return _loader.Load(fullPath);
         }
         catch (CliException exception)
         {
@@ -230,7 +262,21 @@ internal sealed class ActionExpander(ActionYamlLoader loader, OperationRegistry 
     }
 
     private static string FormatChain(IEnumerable<string> chain) =>
-        string.Join(" -> ", chain.Select(Path.GetFileName));
+        string.Join(" -> ", chain.Select(DisplayIdentity));
+
+    private static string DisplayIdentity(string identity) =>
+        identity.StartsWith("builtin:", StringComparison.Ordinal)
+            ? identity["builtin:".Length..]
+            : Path.GetFileName(identity);
+
+    private static bool IdentityEquals(string left, string right)
+    {
+        var leftBuiltin = left.StartsWith("builtin:", StringComparison.Ordinal);
+        var rightBuiltin = right.StartsWith("builtin:", StringComparison.Ordinal);
+        return leftBuiltin || rightBuiltin
+            ? string.Equals(left, right, StringComparison.Ordinal)
+            : PathComparer.Equals(left, right);
+    }
 
     private static string ResolvePath(string path, string baseDirectory)
     {

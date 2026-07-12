@@ -7,16 +7,17 @@ namespace SpireLoc.Cli.Actions;
 
 internal sealed class ActionYamlLoader
 {
-    private static readonly HashSet<string> RootFields = ["version", "parameters", "steps"];
-    private static readonly HashSet<string> ParameterFields = ["type", "position", "flag", "default"];
+    private static readonly HashSet<string> RootFields = ["version", "description", "parameters", "steps"];
+    private static readonly HashSet<string> ParameterFields = ["type", "description", "position", "flag", "default"];
     private static readonly HashSet<string> ReservedParameterNames = ["ActionPath", "ActionDir"];
 
-    private readonly Dictionary<string, ActionDocument> _cache = new(PathComparer);
+    private readonly Dictionary<string, ActionDocument> _fileCache = new(PathComparer);
+    private readonly Dictionary<string, ActionDocument> _builtinCache = new(StringComparer.Ordinal);
 
     public ActionDocument Load(string path)
     {
         var fullPath = Path.GetFullPath(path);
-        if (_cache.TryGetValue(fullPath, out var cached))
+        if (_fileCache.TryGetValue(fullPath, out var cached))
             return cached;
 
         ActionDocument document;
@@ -27,7 +28,7 @@ internal sealed class ActionYamlLoader
             stream.Load(reader);
             if (stream.Documents.Count != 1)
                 throw new CliException($"{fullPath}: Action YAML must contain exactly one document.");
-            document = ParseDocument(fullPath, stream.Documents[0].RootNode);
+            document = ParseDocument(fullPath, false, stream.Documents[0].RootNode);
         }
         catch (CliException)
         {
@@ -44,11 +45,39 @@ internal sealed class ActionYamlLoader
             throw new CliException($"Could not load action '{fullPath}': {exception.Message}", exception);
         }
 
-        _cache.Add(fullPath, document);
+        _fileCache.Add(fullPath, document);
         return document;
     }
 
-    private static ActionDocument ParseDocument(string filePath, YamlNode rootNode)
+    public ActionDocument LoadBuiltin(string name, TextReader reader)
+    {
+        var identity = $"builtin:{name}";
+        if (_builtinCache.TryGetValue(name, out var cached))
+            return cached;
+
+        try
+        {
+            var stream = new YamlStream();
+            stream.Load(reader);
+            if (stream.Documents.Count != 1)
+                throw new CliException($"{identity}: Action YAML must contain exactly one document.");
+            var document = ParseDocument(identity, true, stream.Documents[0].RootNode);
+            _builtinCache.Add(name, document);
+            return document;
+        }
+        catch (CliException)
+        {
+            throw;
+        }
+        catch (YamlException exception)
+        {
+            throw new CliException(
+                $"{identity}:{exception.Start.Line + 1}:{exception.Start.Column + 1}: {exception.Message}",
+                exception);
+        }
+    }
+
+    private static ActionDocument ParseDocument(string filePath, bool isBuiltin, YamlNode rootNode)
     {
         var root = RequireMapping(filePath, rootNode, "Action root must be a mapping.");
         var fields = ReadFields(filePath, root);
@@ -60,6 +89,10 @@ internal sealed class ActionYamlLoader
         if (version != 1)
             throw Error(filePath, versionNode ?? root, $"Unsupported action version '{version}'.");
 
+        var description = fields.TryGetValue("description", out var descriptionNode)
+            ? ReadString(filePath, descriptionNode, "Action description")
+            : null;
+
         var parameters = fields.TryGetValue("parameters", out var parametersNode)
             ? ParseParameters(filePath, parametersNode)
             : [];
@@ -67,7 +100,7 @@ internal sealed class ActionYamlLoader
             throw Error(filePath, root, "Action field 'steps' is required.");
         var steps = ParseSteps(filePath, stepsNode);
 
-        return new ActionDocument(filePath, version, parameters, steps);
+        return new ActionDocument(filePath, isBuiltin, version, description, parameters, steps);
     }
 
     private static IReadOnlyList<ActionParameterDefinition> ParseParameters(string filePath, YamlNode node)
@@ -89,6 +122,9 @@ internal sealed class ActionYamlLoader
                 throw Error(filePath, body, $"Action parameter '{name}' requires field 'type'.");
 
             var type = ParseParameterType(filePath, typeNode);
+            var description = fields.TryGetValue("description", out var descriptionNode)
+                ? ReadString(filePath, descriptionNode, $"Description for action parameter '{name}'")
+                : null;
             var position = fields.TryGetValue("position", out var positionNode)
                 ? ReadInteger(filePath, positionNode, $"Position for action parameter '{name}'")
                 : -1;
@@ -112,7 +148,7 @@ internal sealed class ActionYamlLoader
                     name)
                 : null;
             definitions.Add(new ActionParameterDefinition(
-                name, type, position, isFlag, hasDefault, defaultValue, source));
+                name, description, type, position, isFlag, hasDefault, defaultValue, source));
         }
 
         var duplicate = definitions.GroupBy(static definition => definition.Name, StringComparer.Ordinal)
@@ -292,6 +328,14 @@ internal sealed class ActionYamlLoader
         if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer))
             return InvocationScalar.Integer(integer);
         return InvocationScalar.String(value);
+    }
+
+    private static string ReadString(string filePath, YamlNode node, string context)
+    {
+        var value = ReadScalar(filePath, node);
+        if (value.Kind != InvocationScalarKind.String)
+            throw Error(filePath, node, $"{context} must be a string.");
+        return (string)value.Value;
     }
 
     private static int ReadInteger(string filePath, YamlNode node, string context)

@@ -16,6 +16,7 @@ internal sealed record ActionSourceLocation(string FilePath, int Line, int Colum
 
 internal sealed record ActionParameterDefinition(
     string Name,
+    string? Description,
     ActionParameterType Type,
     int Position,
     bool IsFlag,
@@ -25,9 +26,16 @@ internal sealed record ActionParameterDefinition(
 
 internal sealed record ActionDocument(
     string FilePath,
+    bool IsBuiltin,
     int Version,
+    string? Description,
     IReadOnlyList<ActionParameterDefinition> Parameters,
     IReadOnlyList<ActionStep> Steps);
+
+internal sealed record BuiltinActionInfo(
+    string Name,
+    string? Description,
+    IReadOnlyList<ActionParameterDefinition> Parameters);
 
 internal abstract record ActionStep(ActionCondition? Condition, ActionSourceLocation Source);
 

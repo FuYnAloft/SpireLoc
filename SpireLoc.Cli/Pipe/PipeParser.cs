@@ -40,7 +40,7 @@ internal sealed class PipeParser(OperationRegistry registry)
         index++;
         if (index >= tokens.Count || registry.IsStepHead(tokens[index]) ||
             tokens[index].StartsWith("--", StringComparison.Ordinal))
-            throw new CliException("The '--action' item requires an action file path.");
+            throw new CliException("The '--action' item requires an action name or file path.");
 
         var actionPath = tokens[index++];
         var arguments = new List<string>();

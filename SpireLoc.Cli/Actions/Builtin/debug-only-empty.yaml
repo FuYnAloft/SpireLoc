@@ -1,0 +1,3 @@
+version: 1
+description: Empty debug action used to verify builtin action discovery.
+steps: []

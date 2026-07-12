@@ -325,6 +325,52 @@ public sealed class ActionSystemTests : IDisposable
         Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ListsBuiltinActionsWithDescriptions()
+    {
+        var output = new StringWriter();
+        var command = new ActionCommand(CoreRegistry(), output, new StringWriter());
+
+        command.List();
+
+#if DEBUG
+        Assert.Contains("debug-only-empty", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Empty debug action", output.ToString(), StringComparison.Ordinal);
+#else
+        Assert.DoesNotContain("debug-only-", output.ToString(), StringComparison.Ordinal);
+#endif
+    }
+
+    [Fact]
+    public void PrintsActionAndParameterDescriptions()
+    {
+        Write("described.yaml", """
+            description: Converts localization for a sample mod.
+            parameters:
+              mod-id:
+                type: string
+                description: Stable identifier of the mod.
+                position: 0
+              reversed:
+                type: bool
+                description: Convert back to source form.
+                flag: true
+                default: false
+            steps: []
+            """);
+        var output = new StringWriter();
+        var command = new ActionCommand(CoreRegistry(), output, new StringWriter());
+
+        command.PrintHelp(Path.Combine(_root, "described.yaml"));
+
+        var help = output.ToString();
+        Assert.Contains("Converts localization for a sample mod.", help, StringComparison.Ordinal);
+        Assert.Contains("<mod-id>, --mod-id <string>", help, StringComparison.Ordinal);
+        Assert.Contains("Stable identifier of the mod. (required)", help, StringComparison.Ordinal);
+        Assert.Contains("--reversed", help, StringComparison.Ordinal);
+        Assert.Contains("Convert back to source form. (default: false)", help, StringComparison.Ordinal);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
