@@ -4,6 +4,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpireLoc.Core", "SpireLoc.C
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpireLoc.Core.Tests", "SpireLoc.Core.Tests\SpireLoc.Core.Tests.csproj", "{9E18EA43-F8FB-4787-8D2A-EDB52D048F30}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpireLoc.Cli", "SpireLoc.Cli\SpireLoc.Cli.csproj", "{7D61D873-0F7C-4B7E-9720-B5E0D9C4CCAB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SpireLoc.Cli.Tests", "SpireLoc.Cli.Tests\SpireLoc.Cli.Tests.csproj", "{4EAFE144-9A40-4C4A-8B3D-1881038BB635}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,13 @@ Global
 		{9E18EA43-F8FB-4787-8D2A-EDB52D048F30}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E18EA43-F8FB-4787-8D2A-EDB52D048F30}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E18EA43-F8FB-4787-8D2A-EDB52D048F30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D61D873-0F7C-4B7E-9720-B5E0D9C4CCAB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D61D873-0F7C-4B7E-9720-B5E0D9C4CCAB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D61D873-0F7C-4B7E-9720-B5E0D9C4CCAB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D61D873-0F7C-4B7E-9720-B5E0D9C4CCAB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EAFE144-9A40-4C4A-8B3D-1881038BB635}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EAFE144-9A40-4C4A-8B3D-1881038BB635}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EAFE144-9A40-4C4A-8B3D-1881038BB635}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EAFE144-9A40-4C4A-8B3D-1881038BB635}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

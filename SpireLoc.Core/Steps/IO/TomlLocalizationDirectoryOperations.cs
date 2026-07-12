@@ -2,12 +2,15 @@ using System.Globalization;
 using Tommy;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
+using SpireLoc.Core.Registration;
 
 namespace SpireLoc.Core.Steps.IO;
 
+[method: OperationFactory("input", "toml")]
 public sealed class ReadTomlLocalizationDirectoryOperation(
-    string rootPath,
-    string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("to")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
         LocalizationDirectoryOperationSupport.Read(workspace, rootPath, toSlot, ".toml", Parse);
@@ -19,9 +22,11 @@ public sealed class ReadTomlLocalizationDirectoryOperation(
     }
 }
 
+[method: OperationFactory("output", "toml")]
 public sealed class WriteTomlLocalizationDirectoryOperation(
-    string rootPath,
-    string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("from")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
         LocalizationDirectoryOperationSupport.Write(workspace, rootPath, fromSlot, ".toml", Serialize);

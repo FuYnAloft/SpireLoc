@@ -2,12 +2,15 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
+using SpireLoc.Core.Registration;
 
 namespace SpireLoc.Core.Steps.IO;
 
+[method: OperationFactory("input", "flat-json")]
 public sealed class ReadFlatJsonLocalizationDirectoryOperation(
-    string rootPath,
-    string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("to")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
         LocalizationDirectoryOperationSupport.Read(workspace, rootPath, toSlot, ".json", Parse);
@@ -30,9 +33,11 @@ public sealed class ReadFlatJsonLocalizationDirectoryOperation(
     }
 }
 
+[method: OperationFactory("output", "flat-json")]
 public sealed class WriteFlatJsonLocalizationDirectoryOperation(
-    string rootPath,
-    string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("from")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -57,9 +62,11 @@ public sealed class WriteFlatJsonLocalizationDirectoryOperation(
     }
 }
 
+[method: OperationFactory("input", "nested-json")]
 public sealed class ReadNestedJsonLocalizationDirectoryOperation(
-    string rootPath,
-    string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("to")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
         LocalizationDirectoryOperationSupport.Read(workspace, rootPath, toSlot, ".json", Parse);
@@ -81,9 +88,11 @@ public sealed class ReadNestedJsonLocalizationDirectoryOperation(
     };
 }
 
+[method: OperationFactory("output", "nested-json")]
 public sealed class WriteNestedJsonLocalizationDirectoryOperation(
-    string rootPath,
-    string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("from")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     private static readonly JsonSerializerOptions Options = new()
     {

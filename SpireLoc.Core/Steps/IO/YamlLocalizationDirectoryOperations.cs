@@ -4,12 +4,15 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
+using SpireLoc.Core.Registration;
 
 namespace SpireLoc.Core.Steps.IO;
 
+[method: OperationFactory("input", "yaml")]
 public sealed class ReadYamlLocalizationDirectoryOperation(
-    string rootPath,
-    string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("to")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
         LocalizationDirectoryOperationSupport.Read(workspace, rootPath, toSlot, ".yaml", Parse);
@@ -24,9 +27,11 @@ public sealed class ReadYamlLocalizationDirectoryOperation(
     }
 }
 
+[method: OperationFactory("output", "yaml")]
 public sealed class WriteYamlLocalizationDirectoryOperation(
-    string rootPath,
-    string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName) : ILocOperation
+    [OperationParameter("path", 0)] string rootPath,
+    [OperationParameter("from")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
         LocalizationDirectoryOperationSupport.Write(workspace, rootPath, fromSlot, ".yaml", Serialize);

@@ -7,10 +7,12 @@ namespace SpireLoc.Core.Steps.Support;
 /// <summary>Applies a pure bundle processor to a source workspace slot and writes its result to another slot.</summary>
 public sealed class UnaryLocBundleProcessorStep : ILocOperation
 {
+    public const string DefaultSlotName = "main";
+
     public UnaryLocBundleProcessorStep(
         UnaryLocBundleProcessor processor,
-        string fromSlot,
-        string toSlot)
+        string fromSlot = DefaultSlotName,
+        string toSlot = DefaultSlotName)
     {
         LocWorkspace.ValidateSlotName(fromSlot);
         LocWorkspace.ValidateSlotName(toSlot);
