@@ -56,7 +56,7 @@ public sealed class UnaryLocBundleProcessorStepTests
     private static LocBundle BundleWith(string value) => new(
         new Dictionary<LocTablePath, LocTable>
         {
-            [new LocTablePath("zhs", "cards")] = new([new LocEntry(["card"], value)])
+            [new LocTablePath("zhs", "cards")] = new([new LocEntry(["card"], value)]),
         });
 
     private sealed class ReturningProcessor(LocBundle output) : UnaryLocBundleProcessor

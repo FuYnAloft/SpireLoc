@@ -165,7 +165,7 @@ public sealed class BuiltinActionTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_root))
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(_root, true);
     }
 
     private static ActionExpander Expander()

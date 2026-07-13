@@ -15,22 +15,22 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
             ".yaml",
             root => new ReadYamlLocalizationDirectoryOperation(root),
             root => new WriteYamlLocalizationDirectoryOperation(root),
-            IsFlat: false),
+            false),
         new FormatOperations(
             ".toml",
             root => new ReadTomlLocalizationDirectoryOperation(root),
             root => new WriteTomlLocalizationDirectoryOperation(root),
-            IsFlat: false),
+            false),
         new FormatOperations(
             ".json",
             root => new ReadNestedJsonLocalizationDirectoryOperation(root),
             root => new WriteNestedJsonLocalizationDirectoryOperation(root),
-            IsFlat: false),
+            false),
         new FormatOperations(
             ".json",
             root => new ReadFlatJsonLocalizationDirectoryOperation(root),
             root => new WriteFlatJsonLocalizationDirectoryOperation(root),
-            IsFlat: true)
+            true),
     ];
 
     [Theory]
@@ -70,9 +70,9 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
         {
             [cards] = new([
                 new LocEntry(["existing"], "old"),
-                new LocEntry(["keep"], "unchanged")
+                new LocEntry(["keep"], "unchanged"),
             ]),
-            [ui] = new([new LocEntry(["title"], "ui")])
+            [ui] = new([new LocEntry(["title"], "ui")]),
         });
         WriteFile("zhs/cards.json", """
         {
@@ -117,7 +117,7 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
         {
             ".yaml" => "card:\n  count: 1\n",
             ".toml" => "[card]\ncount = 1\n",
-            _ => "{ \"card\": { \"count\": 1 } }"
+            _ => "{ \"card\": { \"count\": 1 } }",
         };
         WriteFile("zhs/cards" + format.Extension, content);
 
@@ -150,8 +150,8 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
         {
             [new LocTablePath("zhs", "cards")] = new([
                 new LocEntry(["card"], "leaf"),
-                new LocEntry(["card", "title"], "nested")
-            ])
+                new LocEntry(["card", "title"], "nested"),
+            ]),
         });
 
         var result = new WriteNestedJsonLocalizationDirectoryOperation(_root)
@@ -186,7 +186,7 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_root))
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(_root, true);
     }
 
     private void WriteFile(string relativePath, string text)
@@ -200,13 +200,13 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
     {
         [new LocTablePath("zhs", "cards")] = new([
             new LocEntry(["Card", "title"], "打击"),
-            new LocEntry(["Card", "description"], "第一行\n第二行")
-        ])
+            new LocEntry(["Card", "description"], "第一行\n第二行"),
+        ]),
     });
 
     private static LocBundle FlatBundle() => new(new Dictionary<LocTablePath, LocTable>
     {
-        [new LocTablePath("zhs", "cards")] = new([new LocEntry(["MOD-CARD", "title"], "Strike")])
+        [new LocTablePath("zhs", "cards")] = new([new LocEntry(["MOD-CARD", "title"], "Strike")]),
     });
 
     private static void AssertBundlesEqual(LocBundle expected, LocBundle actual)

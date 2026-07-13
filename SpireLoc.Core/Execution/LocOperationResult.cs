@@ -6,7 +6,7 @@ public enum LocOperationStatus
 {
     Succeeded,
     Failed,
-    Skipped
+    Skipped,
 }
 
 public sealed class LocOperationResult

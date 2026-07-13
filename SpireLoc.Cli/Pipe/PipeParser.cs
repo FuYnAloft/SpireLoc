@@ -75,7 +75,8 @@ internal sealed class PipeParser(OperationRegistry registry)
                 if (!parametersByName.TryGetValue(optionName, out var parameter))
                     throw new CliException($"Unknown option '--{optionName}' for step '{descriptor.DisplayPath}'.");
                 if (!parameter.IsList && values.ContainsKey(parameter.Name))
-                    throw new CliException($"Parameter '{parameter.Name}' was supplied more than once for '{descriptor.DisplayPath}'.");
+                    throw new CliException(
+                        $"Parameter '{parameter.Name}' was supplied more than once for '{descriptor.DisplayPath}'.");
 
                 index++;
                 if (parameter.IsFlag)
@@ -86,7 +87,8 @@ internal sealed class PipeParser(OperationRegistry registry)
 
                 if (index >= tokens.Count || registry.IsStepHead(tokens[index]) ||
                     tokens[index].StartsWith("--", StringComparison.Ordinal))
-                    throw new CliException($"Option '--{parameter.Name}' for '{descriptor.DisplayPath}' requires a value.");
+                    throw new CliException(
+                        $"Option '--{parameter.Name}' for '{descriptor.DisplayPath}' requires a value.");
 
                 AddValue(values, parameter.Name, InvocationScalar.String(tokens[index++]));
                 continue;

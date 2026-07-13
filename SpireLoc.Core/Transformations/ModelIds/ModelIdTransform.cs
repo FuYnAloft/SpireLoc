@@ -175,5 +175,4 @@ public sealed partial class ModelIdTransform : ReversibleLocEntryTransform
 
     [GeneratedRegex("_+")]
     private static partial Regex RepeatedUnderscoreRegex();
-
 }

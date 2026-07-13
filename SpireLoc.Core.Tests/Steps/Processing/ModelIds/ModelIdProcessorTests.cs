@@ -126,7 +126,8 @@ public sealed class ModelIdProcessorTests
         new BaseLibModelIdProcessor(ModelIdDirection.ToSource, "myMod").Process(bundle, diagnostics);
 
         Assert.Contains(diagnostics, diagnostic => diagnostic.Code == "ModelIdTransform.UnexpectedGameId");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Message.StartsWith("[zhs/cards#0]", StringComparison.Ordinal));
+        Assert.Contains(diagnostics,
+            diagnostic => diagnostic.Message.StartsWith("[zhs/cards#0]", StringComparison.Ordinal));
     }
 
     private static string Key(LocBundle bundle, string tableName) => bundle[Path(tableName)][0].Key[0];

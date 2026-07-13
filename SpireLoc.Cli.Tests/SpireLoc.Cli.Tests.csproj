@@ -9,14 +9,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-        <PackageReference Include="xunit.v3" Version="3.0.1" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+        <PackageReference Include="xunit.v3" Version="3.0.1"/>
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.1"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\SpireLoc.Cli\SpireLoc.Cli.csproj" />
-        <ProjectReference Include="..\SpireLoc.Core\SpireLoc.Core.csproj" />
+        <ProjectReference Include="..\SpireLoc.Cli\SpireLoc.Cli.csproj"/>
+        <ProjectReference Include="..\SpireLoc.Core\SpireLoc.Core.csproj"/>
     </ItemGroup>
 
 </Project>

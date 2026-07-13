@@ -129,7 +129,8 @@ internal sealed class ActionYamlLoader
                 ? ReadInteger(filePath, positionNode, $"Position for action parameter '{name}'")
                 : -1;
             if (position < -1)
-                throw Error(filePath, positionNode ?? body, $"Action parameter '{name}' has invalid position {position}.");
+                throw Error(filePath, positionNode ?? body,
+                    $"Action parameter '{name}' has invalid position {position}.");
 
             var isFlag = fields.TryGetValue("flag", out var flagNode) &&
                          ReadBoolean(filePath, flagNode, $"Flag for action parameter '{name}'");
@@ -322,7 +323,7 @@ internal sealed class ActionYamlLoader
         var value = ReadScalar(filePath, node);
         if (value.Kind != InvocationScalarKind.String)
             throw Error(filePath, node, "Action parameter type must be a string.");
-        return ((string)value.Value) switch
+        return (string)value.Value switch
         {
             "string" => ActionParameterType.String,
             "bool" => ActionParameterType.Boolean,

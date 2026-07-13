@@ -8,8 +8,10 @@ namespace SpireLoc.Core.Steps.IO;
 
 [method: OperationFactory("input", "flat-json", Description = "Read a directory of flat JSON localization files.")]
 public sealed class ReadFlatJsonLocalizationDirectoryOperation(
-    [OperationParameter("path", 0, Description = "Root localization directory.")] string rootPath,
-    [OperationParameter("to", Description = "Destination workspace slot.")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    [OperationParameter("path", 0, Description = "Root localization directory.")]
+    string rootPath,
+    [OperationParameter("to", Description = "Destination workspace slot.")]
+    string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
     : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
@@ -25,7 +27,8 @@ public sealed class ReadFlatJsonLocalizationDirectoryOperation(
         foreach (var property in document.RootElement.EnumerateObject())
         {
             if (property.Value.ValueKind != JsonValueKind.String)
-                throw new InvalidOperationException($"Flat localization key '{property.Name}' must have a string value.");
+                throw new InvalidOperationException(
+                    $"Flat localization key '{property.Name}' must have a string value.");
             entries.Add(new LocEntry(property.Name.Split('.'), property.Value.GetString()!));
         }
 
@@ -35,14 +38,16 @@ public sealed class ReadFlatJsonLocalizationDirectoryOperation(
 
 [method: OperationFactory("output", "flat-json", Description = "Write flat JSON localization files to a directory.")]
 public sealed class WriteFlatJsonLocalizationDirectoryOperation(
-    [OperationParameter("path", 0, Description = "Root localization directory.")] string rootPath,
-    [OperationParameter("from", Description = "Source workspace slot.")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    [OperationParameter("path", 0, Description = "Root localization directory.")]
+    string rootPath,
+    [OperationParameter("from", Description = "Source workspace slot.")]
+    string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
     : ILocOperation
 {
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
@@ -64,8 +69,10 @@ public sealed class WriteFlatJsonLocalizationDirectoryOperation(
 
 [method: OperationFactory("input", "nested-json", Description = "Read a directory of nested JSON localization files.")]
 public sealed class ReadNestedJsonLocalizationDirectoryOperation(
-    [OperationParameter("path", 0, Description = "Root localization directory.")] string rootPath,
-    [OperationParameter("to", Description = "Destination workspace slot.")] string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    [OperationParameter("path", 0, Description = "Root localization directory.")]
+    string rootPath,
+    [OperationParameter("to", Description = "Destination workspace slot.")]
+    string toSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
     : ILocOperation
 {
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>
@@ -84,20 +91,23 @@ public sealed class ReadNestedJsonLocalizationDirectoryOperation(
             property => Convert(property.Value),
             StringComparer.Ordinal),
         JsonValueKind.String => element.GetString(),
-        _ => null
+        _ => null,
     };
 }
 
-[method: OperationFactory("output", "nested-json", Description = "Write nested JSON localization files to a directory.")]
+[method:
+    OperationFactory("output", "nested-json", Description = "Write nested JSON localization files to a directory.")]
 public sealed class WriteNestedJsonLocalizationDirectoryOperation(
-    [OperationParameter("path", 0, Description = "Root localization directory.")] string rootPath,
-    [OperationParameter("from", Description = "Source workspace slot.")] string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
+    [OperationParameter("path", 0, Description = "Root localization directory.")]
+    string rootPath,
+    [OperationParameter("from", Description = "Source workspace slot.")]
+    string fromSlot = LocalizationDirectoryOperationSupport.DefaultSlotName)
     : ILocOperation
 {
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     public LocOperationResult Execute(LocWorkspace workspace, LocExecutionContext context) =>

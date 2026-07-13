@@ -67,7 +67,7 @@ internal static class Program
     private static int RunAction(IReadOnlyList<string> args, OperationRegistry registry)
     {
         var command = new ActionCommand(registry, Console.Out, Console.Error);
-        if (args.Count == 1 || args.Count == 2 && args[1] is "--help" or "-h")
+        if (args.Count == 1 || (args.Count == 2 && args[1] is "--help" or "-h"))
         {
             PrintActionHelp();
             return 0;
@@ -96,6 +96,7 @@ internal static class Program
             Console.WriteLine("Usage: spireloc action run <action> [action arguments]");
             return 0;
         }
+
         if (args.Count < 3)
             throw new CliException("The 'action run' command requires an action name or file path.");
         if (args.Count == 4 && args[3] is "--help" or "-h")
@@ -110,7 +111,7 @@ internal static class Program
     private static int RunOperation(IReadOnlyList<string> args, OperationRegistry registry)
     {
         var command = new OperationCommand(registry, Console.Out);
-        if (args.Count == 1 || args.Count == 2 && args[1] is "--help" or "-h")
+        if (args.Count == 1 || (args.Count == 2 && args[1] is "--help" or "-h"))
         {
             PrintOperationHelp();
             return 0;

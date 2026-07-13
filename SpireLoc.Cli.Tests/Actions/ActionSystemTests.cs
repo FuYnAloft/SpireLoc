@@ -12,7 +12,8 @@ namespace SpireLoc.Cli.Tests.Actions;
 
 public sealed class ActionSystemTests : IDisposable
 {
-    private readonly string _root = Path.Combine(Path.GetTempPath(), "SpireLocActionTests", Guid.NewGuid().ToString("N"));
+    private readonly string _root =
+        Path.Combine(Path.GetTempPath(), "SpireLocActionTests", Guid.NewGuid().ToString("N"));
 
     [Fact]
     public void RunsActionWithNestedUsesTypedParametersAndActionDirectoryVariables()
@@ -349,7 +350,8 @@ public sealed class ActionSystemTests : IDisposable
 
         var exception = Assert.Throws<CliException>(() => new OperationCompiler(registry).Compile(invocations));
 
-        Assert.Contains("parent.yaml -> child.yaml -> --missing-operation", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("parent.yaml -> child.yaml -> --missing-operation", exception.Message,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -375,6 +377,7 @@ public sealed class ActionSystemTests : IDisposable
                 : $"steps:\n  - uses: ./{index + 1}.yaml\n";
             Write($"{index}.yaml", steps);
         }
+
         var registry = CoreRegistry();
 
         var exception = Assert.Throws<CliException>(() => Expander(registry).ExpandAction(
@@ -448,7 +451,7 @@ public sealed class ActionSystemTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_root))
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(_root, true);
     }
 
     private ActionExpander Expander(OperationRegistry registry) => new(new ActionYamlLoader(), registry);

@@ -36,8 +36,7 @@ public sealed class LocWorkspaceTests
         var workspace = LocWorkspace.Empty.Set("slot", new TestArtifact("value"));
         var overwritten = workspace.Set("slot", new TestArtifact("other"));
 
-        var missing = Assert.Throws<MissingSlotException>(
-            () => workspace.Remove("missing"));
+        var missing = Assert.Throws<MissingSlotException>(() => workspace.Remove("missing"));
 
         Assert.Equal("other", overwritten.Require<TestArtifact>("slot").Value);
         Assert.Equal("missing", missing.SlotName);
@@ -48,8 +47,7 @@ public sealed class LocWorkspaceTests
     {
         var workspace = LocWorkspace.Empty.Set("slot", new TestArtifact("value"));
 
-        var exception = Assert.Throws<SlotTypeMismatchException>(
-            () => workspace.Require<OtherTestArtifact>("slot"));
+        var exception = Assert.Throws<SlotTypeMismatchException>(() => workspace.Require<OtherTestArtifact>("slot"));
 
         Assert.Equal("slot", exception.SlotName);
         Assert.Equal(typeof(OtherTestArtifact), exception.ExpectedType);
@@ -65,5 +63,6 @@ public sealed class LocWorkspaceTests
     }
 
     private sealed record TestArtifact(string Value) : ILocArtifact;
+
     private sealed record OtherTestArtifact(int Value) : ILocArtifact;
 }

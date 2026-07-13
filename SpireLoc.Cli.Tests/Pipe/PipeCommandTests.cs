@@ -67,6 +67,6 @@ public sealed class PipeCommandTests : IDisposable
     public void Dispose()
     {
         if (Directory.Exists(_root))
-            Directory.Delete(_root, recursive: true);
+            Directory.Delete(_root, true);
     }
 }

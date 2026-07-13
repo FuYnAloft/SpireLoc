@@ -12,9 +12,7 @@ public sealed class VanillaModelIdProcessor : ModelIdBundleProcessor
     private static readonly AncientModelIdTransform AncientId = AncientModelIdTransform.Vanilla();
 
     public VanillaModelIdProcessor(ModelIdDirection direction)
-        : base(direction)
-    {
-    }
+        : base(direction) { }
 
     protected override IEnumerable<ILocEntryTransform> GetTransforms(LocTablePath tablePath, LocEntry entry)
     {

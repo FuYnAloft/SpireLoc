@@ -21,7 +21,7 @@ public sealed class LocOperationRunnerTests
             {
                 observed.Add(workspace.Require<TestArtifact>("value").Value);
                 return new LocOperationResult(workspace);
-            })
+            }),
         };
 
         var result = new LocOperationRunner().Run(LocWorkspace.Empty, operations);
@@ -44,7 +44,7 @@ public sealed class LocOperationRunnerTests
             {
                 ranAfterFailure = true;
                 return new LocOperationResult(workspace);
-            })
+            }),
         };
 
         var result = new LocOperationRunner().Run(LocWorkspace.Empty, operations);
@@ -68,7 +68,7 @@ public sealed class LocOperationRunnerTests
                     ? throw new InvalidOperationException("The test workspace unexpectedly contains the slot.")
                     : Diagnostic.Error("Test.MissingSlot", "required slot is missing");
                 return new LocOperationResult(workspace, [diagnostic], LocOperationStatus.Failed);
-            })
+            }),
         };
 
         var result = new LocOperationRunner().Run(LocWorkspace.Empty, operations);
@@ -87,7 +87,7 @@ public sealed class LocOperationRunnerTests
             {
                 operationAfterExceptionRan = true;
                 return new LocOperationResult(workspace);
-            })
+            }),
         };
 
         var result = new LocOperationRunner().Run(LocWorkspace.Empty, operations);

@@ -18,23 +18,21 @@ public sealed class LocBundle : IReadOnlyDictionary<LocTablePath, LocTable>, ILo
 
     public LocBundle(IEnumerable<KeyValuePair<LocTablePath, IReadOnlyList<LocEntry>>> tables)
         : this(tables.Select(static table =>
-            KeyValuePair.Create(table.Key, new LocTable(table.Value))))
-    {
-    }
+            KeyValuePair.Create(table.Key, new LocTable(table.Value)))) { }
 
     public LocBundle(IEnumerable<KeyValuePair<LocTablePath, List<LocEntry>>> tables)
         : this(tables.Select(static table =>
-            KeyValuePair.Create(table.Key, (IReadOnlyList<LocEntry>)table.Value)))
-    {
-    }
+            KeyValuePair.Create(table.Key, (IReadOnlyList<LocEntry>)table.Value))) { }
 
     public int Count => _tables.Count;
     public IEnumerable<LocTablePath> Keys => _tables.Keys;
     public IEnumerable<LocTable> Values => _tables.Values;
     public LocTable this[LocTablePath path] => _tables[path];
     public bool ContainsKey(LocTablePath path) => _tables.ContainsKey(path);
+
     public bool TryGetValue(LocTablePath path, [MaybeNullWhen(false)] out LocTable value) =>
         _tables.TryGetValue(path, out value);
+
     public IEnumerator<KeyValuePair<LocTablePath, LocTable>> GetEnumerator() => _tables.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -73,7 +71,9 @@ public sealed class LocBundle : IReadOnlyDictionary<LocTablePath, LocTable>, ILo
         foreach (var entry in overlay)
         {
             if (indexes.TryGetValue(entry.Key, out var index))
+            {
                 entries[index] = entry;
+            }
             else
             {
                 indexes[entry.Key] = entries.Count;

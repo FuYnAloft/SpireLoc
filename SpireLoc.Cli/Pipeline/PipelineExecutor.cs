@@ -14,7 +14,8 @@ internal sealed class PipelineExecutor(OperationRegistry registry, TextWriter ou
         foreach (var diagnostic in result.Diagnostics)
         {
             var writer = diagnostic.Severity == DiagnosticSeverity.Info ? output : error;
-            writer.WriteLine($"{diagnostic.Severity.ToString().ToLowerInvariant()}: [{diagnostic.Code}] {diagnostic.Message}");
+            writer.WriteLine(
+                $"{diagnostic.Severity.ToString().ToLowerInvariant()}: [{diagnostic.Code}] {diagnostic.Message}");
         }
 
         return result.Diagnostics.HasErrors ? 1 : 0;

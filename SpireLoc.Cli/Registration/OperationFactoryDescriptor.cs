@@ -43,7 +43,7 @@ internal sealed class OperationFactoryDescriptor(
                     values.Add(parameter.Name, ConvertArgument(argument, parameter));
                 }
                 catch (Exception exception) when (exception is FormatException or InvalidCastException or
-                                                   OverflowException or ArgumentException)
+                                                      OverflowException or ArgumentException)
                 {
                     throw invocation.Source.Error(
                         $"Value {FormatArgument(argument)} is not valid for parameter '{parameter.Name}' on '{DisplayPath}'.");
@@ -53,7 +53,8 @@ internal sealed class OperationFactoryDescriptor(
             }
 
             if (!parameter.HasDefaultValue)
-                throw invocation.Source.Error($"Missing required parameter '{parameter.Name}' for step '{DisplayPath}'.");
+                throw invocation.Source.Error(
+                    $"Missing required parameter '{parameter.Name}' for step '{DisplayPath}'.");
             values.Add(parameter.Name, parameter.DefaultValue);
         }
 
@@ -69,11 +70,14 @@ internal sealed class OperationFactoryDescriptor(
         catch (TargetInvocationException exception)
         {
             var cause = exception.InnerException ?? exception;
-            throw new CliException($"{invocation.Source.Description}: Could not create step '{DisplayPath}': {cause.Message}", cause);
+            throw new CliException(
+                $"{invocation.Source.Description}: Could not create step '{DisplayPath}': {cause.Message}", cause);
         }
         catch (Exception exception)
         {
-            throw new CliException($"{invocation.Source.Description}: Could not create step '{DisplayPath}': {exception.Message}", exception);
+            throw new CliException(
+                $"{invocation.Source.Description}: Could not create step '{DisplayPath}': {exception.Message}",
+                exception);
         }
 
         if (!producesUnaryProcessor)

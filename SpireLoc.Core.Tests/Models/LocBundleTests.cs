@@ -15,7 +15,7 @@ public sealed class LocBundleTests
         {
             [zhsCards] = TableWith("zhs card"),
             [zhsUi] = TableWith("zhs ui"),
-            [enCards] = TableWith("en card")
+            [enCards] = TableWith("en card"),
         });
 
         Assert.Equal(3, bundle.Count);
@@ -30,7 +30,7 @@ public sealed class LocBundleTests
         var path = new LocTablePath("zhs", "cards");
         var source = new LocBundle(new Dictionary<LocTablePath, LocTable>
         {
-            [path] = new([new LocEntry(["title"], "old")])
+            [path] = new([new LocEntry(["title"], "old")]),
         });
 
         var tables = source.ToMutableTables();

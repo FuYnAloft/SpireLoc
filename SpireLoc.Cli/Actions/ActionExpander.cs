@@ -15,9 +15,7 @@ internal sealed class ActionExpander
     private readonly OperationRegistry _registry;
 
     public ActionExpander(ActionYamlLoader loader, OperationRegistry registry)
-        : this(loader, new BuiltinActionCatalog(loader, typeof(ActionExpander).Assembly), registry)
-    {
-    }
+        : this(loader, new BuiltinActionCatalog(loader, typeof(ActionExpander).Assembly), registry) { }
 
     public ActionExpander(
         ActionYamlLoader loader,
@@ -303,7 +301,8 @@ internal sealed class ActionExpander
                 ? Path.GetFullPath(path)
                 : Path.GetFullPath(path, Path.GetFullPath(baseDirectory));
         }
-        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException
+                                              or PathTooLongException)
         {
             throw new CliException($"Action path '{path}' is invalid: {exception.Message}", exception);
         }

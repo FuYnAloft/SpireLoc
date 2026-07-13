@@ -65,8 +65,10 @@ public sealed class OperationHelpTests
     {
         [OperationFactory("help-fixture", "convert", Description = "Convert localization.")]
         public static ILocOperation Convert(
-            [OperationParameter("source", 0, Description = "Input directory.")] string source,
-            [OperationParameter("count", Description = "Number of passes.")] int count = 1) =>
+            [OperationParameter("source", 0, Description = "Input directory.")]
+            string source,
+            [OperationParameter("count", Description = "Number of passes.")]
+            int count = 1) =>
             new MarkerOperation();
 
         [OperationFactory("help-fixture", "convert", "advanced", Description = "Advanced conversion.")]

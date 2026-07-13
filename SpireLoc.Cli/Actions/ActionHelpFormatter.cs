@@ -24,11 +24,13 @@ internal static class ActionHelpFormatter
     public static void WriteAction(TextWriter output, string reference, ActionDocument action)
     {
         output.Write($"Usage: spireloc action run {reference}");
-        foreach (var parameter in action.Parameters.OrderBy(static parameter => parameter.Position < 0 ? int.MaxValue : parameter.Position))
+        foreach (var parameter in action.Parameters.OrderBy(static parameter =>
+                     parameter.Position < 0 ? int.MaxValue : parameter.Position))
         {
             if (parameter.Position >= 0)
                 output.Write(parameter.HasDefaultValue ? $" [{parameter.Name}]" : $" <{parameter.Name}>");
         }
+
         if (action.Parameters.Any(static parameter => parameter.Position < 0))
             output.Write(" [options]");
         output.WriteLine();

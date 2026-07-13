@@ -9,7 +9,7 @@ namespace SpireLoc.Core.Steps.IO;
 internal static class LocalizationDirectoryOperationSupport
 {
     public const string DefaultSlotName = "main";
-    public static readonly Encoding Utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+    public static readonly Encoding Utf8 = new UTF8Encoding(false);
 
     public static LocOperationResult Read(
         LocWorkspace workspace,
@@ -38,7 +38,8 @@ internal static class LocalizationDirectoryOperationSupport
 
         var diagnostics = new DiagnosticCollection();
         if (!Directory.Exists(rootPath))
-            return Failure(workspace, "LocalizationDirectory.RootNotFound", $"Localization root '{rootPath}' does not exist.");
+            return Failure(workspace, "LocalizationDirectory.RootNotFound",
+                $"Localization root '{rootPath}' does not exist.");
 
         var tables = new Dictionary<LocTablePath, LocTable>();
         try
@@ -48,7 +49,8 @@ internal static class LocalizationDirectoryOperationSupport
             {
                 var language = Path.GetFileName(languageDirectory);
                 foreach (var file in Directory.EnumerateFiles(languageDirectory)
-                             .Where(path => string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase))
+                             .Where(path => string.Equals(Path.GetExtension(path), extension,
+                                 StringComparison.OrdinalIgnoreCase))
                              .OrderBy(static path => path, StringComparer.Ordinal))
                 {
                     var tableName = Path.GetFileNameWithoutExtension(file);
@@ -183,7 +185,7 @@ internal static class NestedLocalizationMapping
     public static LocTable Read(object? root)
     {
         var entries = new List<LocEntry>();
-        Visit(root, [], entries, isRoot: true);
+        Visit(root, [], entries, true);
         return new LocTable(entries);
     }
 
@@ -239,7 +241,7 @@ internal static class NestedLocalizationMapping
             var childPath = path.Append(key).ToArray();
             if (TryGetMapping(value, out _))
             {
-                Visit(value, childPath, entries, isRoot: false);
+                Visit(value, childPath, entries, false);
             }
             else if (value is string text)
             {

@@ -12,7 +12,7 @@ internal static class InvocationScalarConverter
         if (targetType == typeof(bool))
             return ToBoolean(scalar);
         if (targetType.IsEnum)
-            return Enum.Parse(targetType, RequireString(scalar), ignoreCase: true);
+            return Enum.Parse(targetType, RequireString(scalar), true);
         if (targetType == typeof(FileInfo))
             return new FileInfo(RequireString(scalar));
         if (targetType == typeof(DirectoryInfo))

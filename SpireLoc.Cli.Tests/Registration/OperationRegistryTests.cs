@@ -27,10 +27,7 @@ public sealed class OperationRegistryTests
 
         Assert.Collection(
             operations,
-            operation =>
-            {
-                Assert.IsType<ReadYamlLocalizationDirectoryOperation>(operation);
-            },
+            operation => { Assert.IsType<ReadYamlLocalizationDirectoryOperation>(operation); },
             operation =>
             {
                 var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
@@ -40,10 +37,7 @@ public sealed class OperationRegistryTests
                 Assert.Equal("source", step.FromSlot);
                 Assert.Equal("game", step.ToSlot);
             },
-            operation =>
-            {
-                Assert.IsType<WriteFlatJsonLocalizationDirectoryOperation>(operation);
-            });
+            operation => { Assert.IsType<WriteFlatJsonLocalizationDirectoryOperation>(operation); });
     }
 
     [Fact]
@@ -97,9 +91,12 @@ public sealed class OperationRegistryTests
             new InvocationSource("test"));
 
         Assert.Equal("A described processor.", descriptor.Description);
-        Assert.Equal("Value to process.", Assert.Single(descriptor.Parameters, parameter => parameter.Name == "value").Description);
-        Assert.Equal("Source workspace slot.", Assert.Single(descriptor.Parameters, parameter => parameter.Name == "from").Description);
-        Assert.Equal("Destination workspace slot.", Assert.Single(descriptor.Parameters, parameter => parameter.Name == "to").Description);
+        Assert.Equal("Value to process.",
+            Assert.Single(descriptor.Parameters, parameter => parameter.Name == "value").Description);
+        Assert.Equal("Source workspace slot.",
+            Assert.Single(descriptor.Parameters, parameter => parameter.Name == "from").Description);
+        Assert.Equal("Destination workspace slot.",
+            Assert.Single(descriptor.Parameters, parameter => parameter.Name == "to").Description);
     }
 
     [Fact]
@@ -189,7 +186,8 @@ public sealed class OperationRegistryTests
 
         [OperationFactory("fixture", "described", Description = "A described processor.")]
         public static UnaryLocBundleProcessor CreateDescribed(
-            [OperationParameter("value", 0, Description = "Value to process.")] string value) =>
+            [OperationParameter("value", 0, Description = "Value to process.")]
+            string value) =>
             new MarkerProcessor(value);
     }
 
