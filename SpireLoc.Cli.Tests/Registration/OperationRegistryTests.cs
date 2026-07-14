@@ -5,6 +5,7 @@ using SpireLoc.Core.Diagnostics;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
 using SpireLoc.Core.Registration;
+using SpireLoc.Core.Steps.Compatibility.Processing;
 using SpireLoc.Core.Steps.IO;
 using SpireLoc.Core.Steps.Processing.ModelIds;
 using SpireLoc.Core.Steps.Support;
@@ -54,6 +55,36 @@ public sealed class OperationRegistryTests
         Assert.Equal("TestMod", processor.ModId);
         Assert.Equal("main", step.FromSlot);
         Assert.Equal("main", step.ToSlot);
+    }
+
+    [Fact]
+    public void CoreMinionLibCompatibilityFactoriesBindNamespaceDirectionAndInjectedSlots()
+    {
+        var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
+
+        var operations = ParseAndCompile(registry, [
+            "--compat", "minionlib-component", "to-game", "myMod", "--from", "source", "--to", "game",
+            "--compat", "minionlib-component", "to-source", "--namespace-top", "myMod",
+        ]);
+
+        Assert.Collection(
+            operations,
+            operation =>
+            {
+                var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
+                var processor = Assert.IsType<MinionLibComponentToGameProcessor>(step.Processor);
+                Assert.Equal("myMod", processor.NamespaceTop);
+                Assert.Equal("source", step.FromSlot);
+                Assert.Equal("game", step.ToSlot);
+            },
+            operation =>
+            {
+                var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
+                var processor = Assert.IsType<MinionLibComponentToSourceProcessor>(step.Processor);
+                Assert.Equal("myMod", processor.NamespaceTop);
+                Assert.Equal("main", step.FromSlot);
+                Assert.Equal("main", step.ToSlot);
+            });
     }
 
     [Fact]
