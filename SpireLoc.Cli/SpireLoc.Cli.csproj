@@ -8,9 +8,29 @@
 
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>spireloc</ToolCommandName>
-        <PackageId>SpireLoc.Cli</PackageId>
+        <PackageId>SpireLoc</PackageId>
+        <ReleaseNotes Condition="'$(ReleaseNotes)' == '' and '$(ReleaseVersion)' != ''">Update to $(ReleaseVersion).</ReleaseNotes>
+        <ReleaseNotes Condition="'$(ReleaseNotes)' == ''">Local development build.</ReleaseNotes>
+        <ReleaseVersion Condition="'$(ReleaseVersion)' == ''">0.0.0-local</ReleaseVersion>
+        <Version>$(ReleaseVersion)</Version>
+        <Authors>FuYnAloft</Authors>
+        <Title>SpireLoc</Title>
+        <Description>A localization pipeline tool for Slay the Spire 2 mod development.</Description>
+        <PackageReleaseNotes>$(ReleaseNotes)</PackageReleaseNotes>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageProjectUrl>https://github.com/FuYnAloft/SpireLoc</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/FuYnAloft/SpireLoc</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <Copyright>Copyright (c) 2026 FuYnAloft</Copyright>
+        <PackageTags>slay-the-spire-2;localization;modding;yaml;toml;json;dotnet-tool</PackageTags>
 
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\SpireLoc.Core\SpireLoc.Core.csproj"/>

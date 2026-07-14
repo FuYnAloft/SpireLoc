@@ -1,3 +1,4 @@
+using System.Reflection;
 using SpireLoc.Cli.Actions;
 using SpireLoc.Cli.Pipe;
 using SpireLoc.Cli.Registration;
@@ -14,6 +15,12 @@ internal static class Program
             if (args.Length == 0 || args is ["--help" or "-h"])
             {
                 PrintRootHelp();
+                return 0;
+            }
+
+            if (args is ["--version"])
+            {
+                Console.WriteLine($"spireloc {GetVersion()}");
                 return 0;
             }
 
@@ -62,7 +69,15 @@ internal static class Program
         Console.WriteLine("  operation  Inspect registered operations.");
         Console.WriteLine("  baselib    Run the built-in BaseLib action.");
         Console.WriteLine("  ritsulib   Run the built-in RitsuLib action.");
+        Console.WriteLine();
+        Console.WriteLine("Options:");
+        Console.WriteLine("  --version  Show version information.");
     }
+
+    internal static string GetVersion() =>
+        typeof(Program).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion.Split('+', 2)[0];
 
     private static void PrintPipeHelp(OperationRegistry registry)
     {
