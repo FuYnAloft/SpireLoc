@@ -1,4 +1,5 @@
 using SpireLoc.Cli.Actions;
+using SpireLoc.Cli.Pipeline;
 using SpireLoc.Cli.Registration;
 using SpireLoc.Core.Execution;
 using Xunit;
@@ -11,6 +12,141 @@ public sealed class BuiltinActionTests : IDisposable
         Path.GetTempPath(),
         "SpireLocBuiltinActionTests",
         Guid.NewGuid().ToString("N"));
+
+    [Fact]
+    public void CatalogDiscoversBaseLibAndRitsuLibActions()
+    {
+        var catalog = new BuiltinActionCatalog(new ActionYamlLoader(), typeof(ActionExpander).Assembly);
+
+        Assert.Contains(catalog.Entries,
+            action => action.Name == "baselib" && action.Parameters.Count == 8);
+        Assert.Contains(catalog.Entries,
+            action => action.Name == "ritsulib" && action.Parameters.Count == 9);
+    }
+
+    [Fact]
+    public void BaseLibDefaultsExpandToSourceToGamePipeline()
+    {
+        var invocations = ExpandAndCompile("baselib", ["MyMod", "./source", "./game"]);
+
+        Assert.Collection(
+            invocations,
+            invocation =>
+            {
+                Assert.Equal(["input", "yaml"], invocation.FactoryPath);
+                Assert.Equal("./source", Value(invocation, "path"));
+            },
+            invocation =>
+            {
+                Assert.Equal(["model-id", "baselib"], invocation.FactoryPath);
+                Assert.Equal("MyMod", Value(invocation, "namespace-top"));
+            },
+            invocation =>
+            {
+                Assert.Equal(["output", "flat-json"], invocation.FactoryPath);
+                Assert.Equal("./game", Value(invocation, "path"));
+            });
+    }
+
+    [Fact]
+    public void ReversedBaseLibWithMinionLibUsesGameInputAndNamespaceFallback()
+    {
+        var invocations = ExpandAndCompile("baselib", [
+            "MyMod", "./source", "./game",
+            "--source-format", "toml",
+            "--game-format", "nested-json",
+            "--minionlib-components",
+            "--reversed",
+        ]);
+
+        Assert.Collection(
+            invocations,
+            invocation =>
+            {
+                Assert.Equal(["input", "nested-json"], invocation.FactoryPath);
+                Assert.Equal("./game", Value(invocation, "path"));
+            },
+            invocation =>
+            {
+                Assert.Equal(["compat", "minionlib-component", "to-source"], invocation.FactoryPath);
+                Assert.Equal("MyMod", Value(invocation, "namespace-top"));
+            },
+            invocation =>
+            {
+                Assert.Equal(["model-id", "baselib"], invocation.FactoryPath);
+                Assert.Equal("true", Value(invocation, "reversed"));
+            },
+            invocation =>
+            {
+                Assert.Equal(["output", "toml"], invocation.FactoryPath);
+                Assert.Equal("./source", Value(invocation, "path"));
+            });
+    }
+
+    [Fact]
+    public void RitsuLibDefaultsIncludeModelCapabilityMerge()
+    {
+        var invocations = ExpandAndCompile("ritsulib", ["MyMod", "./source", "./game"]);
+
+        Assert.Equal(
+            [
+                "input yaml",
+                "model-id ritsulib",
+                "reshape ritsulib-model-capability merge",
+                "output flat-json",
+            ],
+            invocations.Select(invocation => string.Join(' ', invocation.FactoryPath)));
+        Assert.Equal("MyMod", Value(invocations[1], "mod-id"));
+    }
+
+    [Fact]
+    public void RitsuLibMinionLibNamespaceDefaultsToModId()
+    {
+        var invocations = ExpandAndCompile("ritsulib", [
+            "MyMod", "./source", "./game", "--minionlib-components",
+        ]);
+
+        var compatibility = Assert.Single(invocations,
+            invocation => invocation.FactoryPath.SequenceEqual(
+                ["compat", "minionlib-component", "to-game"]));
+        Assert.Equal("MyMod", Value(compatibility, "namespace-top"));
+    }
+
+    [Fact]
+    public void ReversedRitsuLibExpandsCompatibilityStepsInReverseOrder()
+    {
+        var invocations = ExpandAndCompile("ritsulib", [
+            "MyMod", "./source", "./game",
+            "--minionlib-components",
+            "--minionlib-namespace-top", "ComponentsNs",
+            "--reversed",
+        ]);
+
+        Assert.Equal(
+            [
+                "input flat-json",
+                "compat minionlib-component to-source",
+                "reshape ritsulib-model-capability split",
+                "model-id ritsulib",
+                "output yaml",
+            ],
+            invocations.Select(invocation => string.Join(' ', invocation.FactoryPath)));
+        Assert.Equal("ComponentsNs", Value(invocations[1], "namespace-top"));
+        Assert.Equal("MyMod", Value(invocations[2], "mod-id"));
+        Assert.Equal("true", Value(invocations[3], "reversed"));
+    }
+
+    [Fact]
+    public void RitsuLibCanDisableModelCapabilityHandling()
+    {
+        var invocations = ExpandAndCompile("ritsulib", [
+            "MyMod", "./source", "./game", "--disable-model-capabilities",
+        ]);
+
+        Assert.Equal(
+            ["input yaml", "model-id ritsulib", "output flat-json"],
+            invocations.Select(invocation => string.Join(' ', invocation.FactoryPath)));
+    }
 
     [Fact]
     public void CatalogDiscoversDebugOnlyResourcesWithDescription()
@@ -177,6 +313,24 @@ public sealed class BuiltinActionTests : IDisposable
             new BuiltinActionCatalog(loader, typeof(ActionExpander).Assembly),
             registry);
     }
+
+    private IReadOnlyList<OperationInvocationSpec> ExpandAndCompile(
+        string action,
+        IReadOnlyList<string> arguments)
+    {
+        var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
+        var loader = new ActionYamlLoader();
+        var expander = new ActionExpander(
+            loader,
+            new BuiltinActionCatalog(loader, typeof(ActionExpander).Assembly),
+            registry);
+        var invocations = expander.ExpandAction(action, arguments, _root);
+        _ = new OperationCompiler(registry).Compile(invocations);
+        return invocations;
+    }
+
+    private static string Value(OperationInvocationSpec invocation, string name) =>
+        invocation.Arguments[name].Values.Single().FormatInvariant();
 
     private void Write(string relativePath, string content)
     {

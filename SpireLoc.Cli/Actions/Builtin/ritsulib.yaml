@@ -1,0 +1,119 @@
+version: 1
+description: Convert localization between RitsuLib source and game directory layouts.
+parameters:
+  mod-id:
+    type: string
+    description: Mod ID used by RitsuLib.
+    position: 0
+  source-path:
+    type: string
+    description: Source localization directory.
+    position: 1
+  game-path:
+    type: string
+    description: Game localization directory.
+    position: 2
+  source-format:
+    type: string
+    description: Structured source localization format.
+    default: yaml
+  game-format:
+    type: string
+    description: Game localization format.
+    default: flat-json
+  minionlib-components:
+    type: bool
+    description: Enable MinionLib component compatibility conversion.
+    flag: true
+    default: false
+  minionlib-namespace-top:
+    type: string
+    description: MinionLib component namespace; leave empty to use mod-id.
+    default: ""
+  disable-model-capabilities:
+    type: bool
+    description: Disable RitsuLib ModelCapability table separation and merging.
+    flag: true
+    default: false
+  reversed:
+    type: bool
+    description: Convert game localization back to source form.
+    flag: true
+    default: false
+steps:
+  - if:
+      not: $(reversed)
+    input:
+      kind: $(source-format)
+      path: $(source-path)
+  - if:
+      not: $(reversed)
+    model-id:
+      kind: ritsulib
+      mod-id: $(mod-id)
+  - if:
+      all:
+        - not: $(reversed)
+        - not: $(disable-model-capabilities)
+    reshape:
+      kind: [ritsulib-model-capability, merge]
+  - if:
+      all:
+        - not: $(reversed)
+        - $(minionlib-components)
+        - equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-game]
+      namespace-top: $(mod-id)
+  - if:
+      all:
+        - not: $(reversed)
+        - $(minionlib-components)
+        - not:
+            equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-game]
+      namespace-top: $(minionlib-namespace-top)
+  - if:
+      not: $(reversed)
+    output:
+      kind: $(game-format)
+      path: $(game-path)
+
+  - if: $(reversed)
+    input:
+      kind: $(game-format)
+      path: $(game-path)
+  - if:
+      all:
+        - $(reversed)
+        - $(minionlib-components)
+        - equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-source]
+      namespace-top: $(mod-id)
+  - if:
+      all:
+        - $(reversed)
+        - $(minionlib-components)
+        - not:
+            equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-source]
+      namespace-top: $(minionlib-namespace-top)
+  - if:
+      all:
+        - $(reversed)
+        - not: $(disable-model-capabilities)
+    reshape:
+      kind: [ritsulib-model-capability, split]
+      mod-id: $(mod-id)
+  - if: $(reversed)
+    model-id:
+      kind: ritsulib
+      mod-id: $(mod-id)
+      reversed: true
+  - if: $(reversed)
+    output:
+      kind: $(source-format)
+      path: $(source-path)

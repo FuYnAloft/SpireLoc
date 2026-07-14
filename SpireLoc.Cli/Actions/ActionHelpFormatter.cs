@@ -88,6 +88,7 @@ internal static class ActionHelpFormatter
     private static string FormatDefault(Pipeline.InvocationScalar value) => value.Kind switch
     {
         Pipeline.InvocationScalarKind.Boolean => value.FormatInvariant().ToLowerInvariant(),
+        Pipeline.InvocationScalarKind.String when value.FormatInvariant().Length == 0 => "\"\"",
         _ => value.FormatInvariant(),
     };
 }

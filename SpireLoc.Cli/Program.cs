@@ -35,7 +35,15 @@ internal static class Program
             if (string.Equals(args[0], "operation", StringComparison.Ordinal))
                 return RunOperation(args, registry);
 
-            throw new CliException($"Unknown command '{args[0]}'. Expected 'pipe', 'action', or 'operation'.");
+            if (args[0] is "baselib" or "ritsulib")
+            {
+                return RunAction(
+                    ["action", "run", args[0], .. args[1..]],
+                    registry);
+            }
+
+            throw new CliException(
+                $"Unknown command '{args[0]}'. Expected 'pipe', 'action', 'operation', 'baselib', or 'ritsulib'.");
         }
         catch (CliException exception)
         {
@@ -49,9 +57,11 @@ internal static class Program
         Console.WriteLine("Usage: spireloc <command>");
         Console.WriteLine();
         Console.WriteLine("Commands:");
-        Console.WriteLine("  pipe    Build and execute a localization operation pipeline.");
-        Console.WriteLine("  action  Run or inspect reusable YAML actions.");
+        Console.WriteLine("  pipe       Build and execute a localization operation pipeline.");
+        Console.WriteLine("  action     Run or inspect reusable YAML actions.");
         Console.WriteLine("  operation  Inspect registered operations.");
+        Console.WriteLine("  baselib    Run the built-in BaseLib action.");
+        Console.WriteLine("  ritsulib   Run the built-in RitsuLib action.");
     }
 
     private static void PrintPipeHelp(OperationRegistry registry)
