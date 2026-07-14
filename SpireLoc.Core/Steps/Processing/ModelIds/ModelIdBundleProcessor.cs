@@ -14,7 +14,6 @@ public abstract class ModelIdBundleProcessor : UnaryLocBundleProcessor
     {
         "achievements",
         "acts",
-        "afflications",
         "afflictions",
         "card_keywords",
         "cards",

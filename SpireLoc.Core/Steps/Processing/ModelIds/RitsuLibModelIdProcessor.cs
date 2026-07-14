@@ -22,7 +22,6 @@ public sealed class RitsuLibModelIdProcessor : ModelIdBundleProcessor
         {
             ["achievements"] = ModelIdTransform.RitsuLib(0, modId, "AchievementModel"),
             ["acts"] = ModelIdTransform.RitsuLib(0, modId, "ActModel"),
-            ["afflications"] = ModelIdTransform.RitsuLib(0, modId, "AfflictionModel"),
             ["afflictions"] = ModelIdTransform.RitsuLib(0, modId, "AfflictionModel"),
             ["card_keywords"] = ModelIdTransform.RitsuLib(0, modId, "Keyword"),
             ["cards"] = ModelIdTransform.RitsuLib(0, modId, "CardModel"),

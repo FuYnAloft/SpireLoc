@@ -50,13 +50,12 @@ public sealed class ModelIdProcessorTests
     }
 
     [Fact]
-    public void RitsuLibProcessorUsesEachTableCategoryAndHandlesBothAfflictionTableSpellings()
+    public void RitsuLibProcessorUsesEachTableCategory()
     {
         var source = Bundle(
             ("achievements", [Entry(["CustomAchievement", "title"])]),
             ("acts", [Entry(["CustomAct", "title"])]),
-            ("afflications", [Entry(["CustomAffliction", "title"])]),
-            ("afflictions", [Entry(["OtherAffliction", "title"])]),
+            ("afflictions", [Entry(["CustomAffliction", "title"])]),
             ("card_keywords", [Entry(["CustomKeyword", "title"])]),
             ("cards", [Entry(["CustomCard", "title"])]),
             ("characters", [Entry(["CustomCharacter", "title"])]),
@@ -76,8 +75,7 @@ public sealed class ModelIdProcessorTests
 
         Assert.Equal("MY_MOD_ACHIEVEMENT_CUSTOM_ACHIEVEMENT", Key(result, "achievements"));
         Assert.Equal("MY_MOD_ACT_CUSTOM_ACT", Key(result, "acts"));
-        Assert.Equal("MY_MOD_AFFLICTION_CUSTOM_AFFLICTION", Key(result, "afflications"));
-        Assert.Equal("MY_MOD_AFFLICTION_OTHER_AFFLICTION", Key(result, "afflictions"));
+        Assert.Equal("MY_MOD_AFFLICTION_CUSTOM_AFFLICTION", Key(result, "afflictions"));
         Assert.Equal("MY_MOD_KEYWORD_CUSTOM_KEYWORD", Key(result, "card_keywords"));
         Assert.Equal("MY_MOD_CARD_CUSTOM_CARD", Key(result, "cards"));
         Assert.Equal("MY_MOD_CHARACTER_CUSTOM_CHARACTER", Key(result, "characters"));
