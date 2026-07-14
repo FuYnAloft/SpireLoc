@@ -8,6 +8,7 @@ using SpireLoc.Core.Registration;
 using SpireLoc.Core.Steps.Compatibility.Processing;
 using SpireLoc.Core.Steps.IO;
 using SpireLoc.Core.Steps.Processing.ModelIds;
+using SpireLoc.Core.Steps.Reshape.Processing;
 using SpireLoc.Core.Steps.Support;
 using Xunit;
 
@@ -82,6 +83,44 @@ public sealed class OperationRegistryTests
                 var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
                 var processor = Assert.IsType<MinionLibComponentToSourceProcessor>(step.Processor);
                 Assert.Equal("myMod", processor.NamespaceTop);
+                Assert.Equal("main", step.FromSlot);
+                Assert.Equal("main", step.ToSlot);
+            });
+    }
+
+    [Fact]
+    public void CoreRitsuLibModelCapabilityReshapeFactoriesBindOptionalModIdAndInjectedSlots()
+    {
+        var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
+
+        var operations = ParseAndCompile(registry, [
+            "--reshape", "ritsulib-model-capability", "merge", "--from", "source", "--to", "game",
+            "--reshape", "ritsulib-model-capability", "split", "TestMod", "--from", "game", "--to", "source",
+            "--reshape", "ritsulib-model-capability", "split",
+        ]);
+
+        Assert.Collection(
+            operations,
+            operation =>
+            {
+                var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
+                Assert.IsType<RitsuLibModelCapabilityMergeProcessor>(step.Processor);
+                Assert.Equal("source", step.FromSlot);
+                Assert.Equal("game", step.ToSlot);
+            },
+            operation =>
+            {
+                var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
+                var processor = Assert.IsType<RitsuLibModelCapabilitySplitProcessor>(step.Processor);
+                Assert.Equal("TestMod", processor.ModId);
+                Assert.Equal("game", step.FromSlot);
+                Assert.Equal("source", step.ToSlot);
+            },
+            operation =>
+            {
+                var step = Assert.IsType<UnaryLocBundleProcessorStep>(operation);
+                var processor = Assert.IsType<RitsuLibModelCapabilitySplitProcessor>(step.Processor);
+                Assert.Null(processor.ModId);
                 Assert.Equal("main", step.FromSlot);
                 Assert.Equal("main", step.ToSlot);
             });

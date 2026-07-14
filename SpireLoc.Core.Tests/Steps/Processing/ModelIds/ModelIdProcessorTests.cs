@@ -63,6 +63,8 @@ public sealed class ModelIdProcessorTests
             ("enchantments", [Entry(["CustomEnchantment", "title"])]),
             ("encounters", [Entry(["CustomEncounter", "title"])]),
             ("events", [Entry(["CustomEvent", "title"])]),
+            ("model_capabilities", [Entry(["CustomCapability", "title"])]),
+            ("modelcapabilities", [Entry(["LegacyCapability", "title"])]),
             ("modifiers", [Entry(["CustomModifier", "title"])]),
             ("monsters", [Entry(["CustomMonster", "title"])]),
             ("orbs", [Entry(["CustomOrb", "title"])]),
@@ -82,6 +84,8 @@ public sealed class ModelIdProcessorTests
         Assert.Equal("MY_MOD_ENCHANTMENT_CUSTOM_ENCHANTMENT", Key(result, "enchantments"));
         Assert.Equal("MY_MOD_ENCOUNTER_CUSTOM_ENCOUNTER", Key(result, "encounters"));
         Assert.Equal("MY_MOD_EVENT_CUSTOM_EVENT", Key(result, "events"));
+        Assert.Equal("MY_MOD_MODEL_CAPABILITY_CUSTOM_CAPABILITY", Key(result, "model_capabilities"));
+        Assert.Equal("MY_MOD_MODELCAPABILITY_LEGACY_CAPABILITY", Key(result, "modelcapabilities"));
         Assert.Equal("MY_MOD_MODIFIER_CUSTOM_MODIFIER", Key(result, "modifiers"));
         Assert.Equal("MY_MOD_MONSTER_CUSTOM_MONSTER", Key(result, "monsters"));
         Assert.Equal("MY_MOD_ORB_CUSTOM_ORB", Key(result, "orbs"));

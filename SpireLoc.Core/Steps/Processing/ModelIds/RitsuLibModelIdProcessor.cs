@@ -30,6 +30,8 @@ public sealed class RitsuLibModelIdProcessor : ModelIdBundleProcessor
             ["enchantments"] = ModelIdTransform.RitsuLib(0, modId, "EnchantmentModel"),
             ["encounters"] = ModelIdTransform.RitsuLib(0, modId, "EncounterModel"),
             ["events"] = ModelIdTransform.RitsuLib(0, modId, "EventModel"),
+            ["model_capabilities"] = ModelIdTransform.RitsuLib(0, modId, "ModelCapability"),
+            ["modelcapabilities"] = ModelIdTransform.RitsuLib(0, modId, "MODELCAPABILITY"),
             ["modifiers"] = ModelIdTransform.RitsuLib(0, modId, "ModifierModel"),
             ["monsters"] = ModelIdTransform.RitsuLib(0, modId, "MonsterModel"),
             ["orbs"] = ModelIdTransform.RitsuLib(0, modId, "OrbModel"),
