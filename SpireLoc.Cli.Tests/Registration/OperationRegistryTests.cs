@@ -10,6 +10,7 @@ using SpireLoc.Core.Steps.IO;
 using SpireLoc.Core.Steps.Processing.ModelIds;
 using SpireLoc.Core.Steps.Reshape.Processing;
 using SpireLoc.Core.Steps.Support;
+using SpireLoc.Core.Steps.Workspace;
 using Xunit;
 
 namespace SpireLoc.Cli.Tests.Registration;
@@ -87,6 +88,25 @@ public sealed class OperationRegistryTests
         Assert.Equal("CustomCharacter", result[new LocTablePath("zhs", "relics")][0].Key[1]);
         Assert.Equal("source", step.FromSlot);
         Assert.Equal("game", step.ToSlot);
+    }
+
+    [Fact]
+    public void PartitionAndMergeFactoriesBindVariadicPositionalsAndDefaults()
+    {
+        var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
+
+        var operations = ParseAndCompile(registry, [
+            "--partition", "table", "cards", "relics", "--from", "source",
+            "--matched", "selected", "--unmatched", "remaining",
+            "--merge", "--to", "combined",
+        ]);
+
+        var partition = Assert.IsType<PartitionLocBundleOperation>(operations[0]);
+        Assert.Equal("source", partition.FromSlot);
+        Assert.Equal("selected", partition.MatchedSlot);
+        Assert.Equal("remaining", partition.UnmatchedSlot);
+        var merge = Assert.IsType<MergeLocBundlesOperation>(operations[1]);
+        Assert.Equal("combined", merge.ToSlot);
     }
 
     [Fact]

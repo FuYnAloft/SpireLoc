@@ -100,6 +100,27 @@ spireloc pipe `
 
 反向转换使用同一组 prefix 和表规则，并添加 `--reversed`。
 
+可以按表、语言或 entry 的结构化路径把一个 bundle 分到两个 slot。多个 condition 之间是 OR；regex 匹配的文本格式为 `language/table/Key0.Key1`：
+
+```pwsh
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --partition table cards relics `
+  --output yaml ./matched --from matched `
+  --output yaml ./unmatched --from unmatched
+
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --partition regex '^zhs/cards/' 'title$'
+```
+
+`merge` 按来源顺序合并 bundle，后面的同表同 key 条目覆盖前面的条目。省略来源时会选择 workspace 中所有 `LocBundle` slot，并按 slot 名称 Ordinal 排序：
+
+```pwsh
+spireloc pipe --merge source common overrides --to main
+spireloc pipe --merge --to main
+```
+
 ## Action
 
 Action 是可带参数、可组合的 YAML pipeline。它会在执行前展开为普通 operation，因此也可以通过 `--action` 嵌入另一条 pipeline。
@@ -169,6 +190,7 @@ localization/
 - MinionLib component 本地化在独立 `components` 表与游戏侧 `cards` 表之间的双向兼容转换。
 - RitsuLib ModelCapability 本地化表与 `cards` 表之间的拆分和合并。
 - 参数化 YAML action、嵌套 `uses`、条件展开，以及随工具发布的内置 action。
+- LocBundle 按表、语言或结构化路径分区，以及按 workspace slot 合并。
 
 ## 开发
 
