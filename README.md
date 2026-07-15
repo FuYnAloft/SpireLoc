@@ -123,7 +123,7 @@ spireloc pipe --merge --to main
 
 ## Action
 
-Action 是可带参数、可组合的 YAML pipeline。它会在执行前展开为普通 operation，因此也可以通过 `--action` 嵌入另一条 pipeline。
+Action 是可带参数、可组合的 YAML 或 JSON pipeline。两种格式使用相同的 schema，并会在执行前展开为普通 operation，因此也可以通过 `--action` 嵌入另一条 pipeline。
 
 下面的 `convert.yaml` 接受一个位置参数 `mod-id`：
 
@@ -162,6 +162,28 @@ spireloc pipe `
 
 Action 还支持 `uses`、`with`、默认参数、布尔 flag、模板变量以及展开期的 `if` 条件。
 
+JSON action 使用完全相同的字段和语义，例如：
+
+```json
+{
+  "schema-version": 1,
+  "steps": [
+    {
+      "input": {
+        "kind": "yaml",
+        "path": "./localization"
+      }
+    }
+  ]
+}
+```
+
+可以像 YAML action 一样直接执行或通过 `uses` 引用：
+
+```pwsh
+spireloc action run ./convert.json
+```
+
 ## 文件布局与格式
 
 所有目录型输入输出采用相同布局：
@@ -189,7 +211,7 @@ localization/
 - 可按 `table[:keyIndex]` 选择表和 key 位置的自定义 Model ID prefix 双向转换。
 - MinionLib component 本地化在独立 `components` 表与游戏侧 `cards` 表之间的双向兼容转换。
 - RitsuLib ModelCapability 本地化表与 `cards` 表之间的拆分和合并。
-- 参数化 YAML action、嵌套 `uses`、条件展开，以及随工具发布的内置 action。
+- 参数化 YAML/JSON action、嵌套 `uses`、条件展开，以及随工具发布的内置 action。
 - LocBundle 按表、语言或结构化路径分区，以及按 workspace slot 合并。
 
 ## 开发

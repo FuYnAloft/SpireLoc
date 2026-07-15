@@ -70,6 +70,66 @@ public sealed class ActionSystemTests : IDisposable
     }
 
     [Fact]
+    public void RunsJsonActionWithYamlUses()
+    {
+        Write("json-source/zhs/cards.yaml", "CustomCard:\n  title: JSON Test\n");
+        Write("json-transform.yaml", """
+            parameters:
+              mod-id:
+                type: string
+                position: 0
+            steps:
+              - model-id:
+                  kind: ritsulib
+                  mod-id: $(mod-id)
+            """);
+        Write("convert.json", """
+            {
+              "schema-version": 1,
+              "parameters": {
+                "mod-id": {
+                  "type": "string",
+                  "position": 0
+                }
+              },
+              "steps": [
+                {
+                  "input": {
+                    "kind": "yaml",
+                    "path": "$(ActionDir)/json-source"
+                  }
+                },
+                {
+                  "uses": "./json-transform.yaml",
+                  "with": {
+                    "mod-id": "$(mod-id)"
+                  }
+                },
+                {
+                  "output": {
+                    "kind": "flat-json",
+                    "path": "$(ActionDir)/json-game"
+                  }
+                }
+              ]
+            }
+            """);
+        var output = new StringWriter();
+        var error = new StringWriter();
+
+        var exitCode = new ActionCommand(CoreRegistry(), output, error)
+            .Run(Path.Combine(_root, "convert.json"), ["JsonMod"]);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(string.Empty, error.ToString());
+        using var document = JsonDocument.Parse(
+            File.ReadAllText(Path.Combine(_root, "json-game", "zhs", "cards.json")));
+        Assert.Equal(
+            "JSON Test",
+            document.RootElement.GetProperty("JSON_MOD_CARD_CUSTOM_CARD.title").GetString());
+    }
+
+    [Fact]
     public void PipeActionExpandsInPlaceAndBindsFlagFromTargetSchema()
     {
         Write("game/zhs/cards.json", """

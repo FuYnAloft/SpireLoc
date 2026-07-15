@@ -28,7 +28,7 @@ internal sealed class ActionYamlLoader
             var stream = new YamlStream();
             stream.Load(reader);
             if (stream.Documents.Count != 1)
-                throw new CliException($"{fullPath}: Action YAML must contain exactly one document.");
+                throw new CliException($"{fullPath}: Action definition must contain exactly one document.");
             document = ParseDocument(fullPath, false, stream.Documents[0].RootNode);
         }
         catch (CliException)
@@ -61,7 +61,7 @@ internal sealed class ActionYamlLoader
             var stream = new YamlStream();
             stream.Load(reader);
             if (stream.Documents.Count != 1)
-                throw new CliException($"{identity}: Action YAML must contain exactly one document.");
+                throw new CliException($"{identity}: Action definition must contain exactly one document.");
             var document = ParseDocument(identity, true, stream.Documents[0].RootNode);
             _builtinCache.Add(name, document);
             return document;

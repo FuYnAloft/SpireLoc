@@ -65,7 +65,7 @@ internal static class Program
         Console.WriteLine();
         Console.WriteLine("Commands:");
         Console.WriteLine("  pipe       Build and execute a localization operation pipeline.");
-        Console.WriteLine("  action     Run or inspect reusable YAML actions.");
+        Console.WriteLine("  action     Run or inspect reusable YAML or JSON actions.");
         Console.WriteLine("  operation  Inspect registered operations.");
         Console.WriteLine("  baselib    Run the built-in BaseLib action.");
         Console.WriteLine("  ritsulib   Run the built-in RitsuLib action.");

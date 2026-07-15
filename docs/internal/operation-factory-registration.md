@@ -16,7 +16,7 @@ CLI 启动时会扫描 Core 程序集中的 `OperationFactoryAttribute`。Attrib
 spireloc pipe --model-id ritsulib ...
 ```
 
-路径的第一段是带 `--` 的步骤头，后续段是不带 `--` 的子指令。Action YAML 使用相同路径，其中第一段是 step key，后续段放在 `kind`：
+路径的第一段是带 `--` 的步骤头，后续段是不带 `--` 的子指令。Action YAML 和 JSON 使用相同路径，其中第一段是 step key，后续段放在 `kind`：
 
 ```yaml
 steps:
@@ -142,7 +142,7 @@ public sealed class ExampleProcessor(
 
 | 属性 | 含义 |
 | --- | --- |
-| `Name` | CLI 和 Action YAML 中的参数名。省略时由 C# 参数名自动转换为 kebab-case。 |
+| `Name` | CLI 和 Action 文件中的参数名。省略时由 C# 参数名自动转换为 kebab-case。 |
 | `Position` | 位置参数编号；默认 `-1`，表示只能按名称传入。 |
 | `IsFlag` | 将 bool 参数注册为无值开关。 |
 | `Description` | `operation help` 中显示的参数说明。 |
@@ -224,7 +224,7 @@ IReadOnlyList<string> fromSlots
 --from a --from b --from c
 ```
 
-Action YAML 使用序列：
+Action YAML 使用序列，JSON 使用数组：
 
 ```yaml
 - merge:
@@ -249,7 +249,7 @@ IReadOnlyList<string> fromSlots
 - Factory 路径不能为空，各段不能为空、不能包含空白，也不能以 `-` 开头。
 - 完整 factory 路径在所有被扫描的程序集中必须唯一。
 - `action` 是保留的步骤头，不能用于 operation。
-- `kind` 是 Action YAML 的保留参数名，不能作为 operation 参数名。
+- `kind` 是 Action 文件的保留参数名，不能作为 operation 参数名。
 - 参数名不能与任何已注册的步骤头相同。
 - 同一个 factory 内不能出现重复参数名。
 - `ref`、`out` 和 C# `params` 参数不受支持。
