@@ -27,6 +27,16 @@ public static class ModelIdProcessorFactories
         bool reversed = false) =>
         new RitsuLibModelIdProcessor(GetDirection(reversed), modId);
 
+    [OperationFactory("model-id", "prefix", Description = "Convert selected model ID key segments using a custom prefix.")]
+    public static UnaryLocBundleProcessor CreatePrefix(
+        [OperationParameter("prefix", 0, Description = "Prefix added to generated game model IDs.")]
+        string prefix,
+        [OperationParameter("table", 1, Description = "Table name, optionally followed by a zero-based key index as table:index.")]
+        IReadOnlyList<string> tableSpecifications,
+        [OperationParameter("reversed", IsFlag = true, Description = "Convert game localization back to source form.")]
+        bool reversed = false) =>
+        new PrefixModelIdProcessor(GetDirection(reversed), prefix, tableSpecifications);
+
     private static ModelIdDirection GetDirection(bool reversed) =>
         reversed ? ModelIdDirection.ToSource : ModelIdDirection.ToGame;
 }

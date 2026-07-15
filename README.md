@@ -89,6 +89,17 @@ spireloc operation help input
 spireloc operation help model-id ritsulib
 ```
 
+需要使用自定义 Model ID 前缀时，可以列出要处理的表；`table:index` 使用从 `0` 开始的 key segment 索引，省略 `:index` 时默认为 `0`。例如 `cards:1` 处理 key 的第二段：
+
+```pwsh
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --model-id prefix TEST_ cards ancients:2 `
+  --output flat-json ./TestMod/localization
+```
+
+反向转换使用同一组 prefix 和表规则，并添加 `--reversed`。
+
 ## Action
 
 Action 是可带参数、可组合的 YAML pipeline。它会在执行前展开为普通 operation，因此也可以通过 `--action` 嵌入另一条 pipeline。
@@ -154,6 +165,7 @@ localization/
 
 - YAML、TOML、nested JSON 与 flat JSON 的目录化读取和写入。
 - 原版游戏、BaseLib、RitsuLib 的 Model ID 双向转换。
+- 可按 `table[:keyIndex]` 选择表和 key 位置的自定义 Model ID prefix 双向转换。
 - MinionLib component 本地化在独立 `components` 表与游戏侧 `cards` 表之间的双向兼容转换。
 - RitsuLib ModelCapability 本地化表与 `cards` 表之间的拆分和合并。
 - 参数化 YAML action、嵌套 `uses`、条件展开，以及随工具发布的内置 action。

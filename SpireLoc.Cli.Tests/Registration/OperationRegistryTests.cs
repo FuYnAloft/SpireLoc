@@ -59,6 +59,37 @@ public sealed class OperationRegistryTests
     }
 
     [Fact]
+    public void CustomPrefixModelIdFactoryBindsVariadicTablesDirectionAndSlots()
+    {
+        var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);
+
+        var operations = ParseAndCompile(registry, [
+            "--model-id", "prefix", "TEST_", "cards", "relics:1", "--reversed",
+            "--from", "source", "--to", "game",
+        ]);
+
+        var step = Assert.IsType<UnaryLocBundleProcessorStep>(Assert.Single(operations));
+        var processor = Assert.IsType<PrefixModelIdProcessor>(step.Processor);
+        var bundle = new LocBundle([
+            KeyValuePair.Create(
+                new LocTablePath("zhs", "cards"),
+                new LocTable([new LocEntry(["TEST_CUSTOM_CARD", "title"], "value")])),
+            KeyValuePair.Create(
+                new LocTablePath("zhs", "relics"),
+                new LocTable([new LocEntry(["SEA_GLASS", "TEST_CUSTOM_CHARACTER", "title"], "value")])),
+        ]);
+
+        var result = processor.Process(bundle);
+
+        Assert.Equal(ModelIdDirection.ToSource, processor.Direction);
+        Assert.Equal("TEST_", processor.Prefix);
+        Assert.Equal("CustomCard", result[new LocTablePath("zhs", "cards")][0].Key[0]);
+        Assert.Equal("CustomCharacter", result[new LocTablePath("zhs", "relics")][0].Key[1]);
+        Assert.Equal("source", step.FromSlot);
+        Assert.Equal("game", step.ToSlot);
+    }
+
+    [Fact]
     public void CoreMinionLibCompatibilityFactoriesBindNamespaceDirectionAndInjectedSlots()
     {
         var registry = OperationRegistry.Scan(typeof(ILocOperation).Assembly);

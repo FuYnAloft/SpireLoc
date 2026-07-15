@@ -132,6 +132,55 @@ public sealed class ModelIdProcessorTests
             diagnostic => diagnostic.Message.StartsWith("[zhs/cards#0]", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void PrefixProcessorTransformsConfiguredTablesAndKeyIndexes()
+    {
+        var source = Bundle(
+            ("cards", [Entry(["CustomCard", "CustomCharacter", "title"])]),
+            ("relics", [Entry(["CustomRelic", "title"])]),
+            ("settings_ui", [Entry(["CustomSetting", "title"])]));
+        var toGame = new PrefixModelIdProcessor(
+            ModelIdDirection.ToGame,
+            "TEST_",
+            ["cards", "cards:1", "relics:0"]);
+        var toSource = new PrefixModelIdProcessor(
+            ModelIdDirection.ToSource,
+            "TEST_",
+            ["cards:0", "cards:1", "relics"]);
+
+        var game = toGame.Process(source);
+        var reverted = toSource.Process(game);
+
+        Assert.Equal(["TEST_CUSTOM_CARD", "TEST_CUSTOM_CHARACTER", "title"], game[Path("cards")][0].Key);
+        Assert.Equal("TEST_CUSTOM_RELIC", game[Path("relics")][0].Key[0]);
+        Assert.Equal("CustomSetting", game[Path("settings_ui")][0].Key[0]);
+        Assert.Equal(source, reverted);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(":0")]
+    [InlineData(" :0")]
+    [InlineData("cards:")]
+    [InlineData("cards:-1")]
+    [InlineData("cards:index")]
+    [InlineData("cards:0:1")]
+    public void PrefixProcessorRejectsInvalidTableSpecifications(string specification)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new PrefixModelIdProcessor(ModelIdDirection.ToGame, "TEST_", [specification]));
+    }
+
+    [Fact]
+    public void PrefixProcessorRejectsMissingAndDuplicateTableSpecifications()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new PrefixModelIdProcessor(ModelIdDirection.ToGame, "TEST_", []));
+        Assert.Throws<ArgumentException>(() =>
+            new PrefixModelIdProcessor(ModelIdDirection.ToGame, "TEST_", ["cards", "cards:0"]));
+    }
+
     private static string Key(LocBundle bundle, string tableName) => bundle[Path(tableName)][0].Key[0];
 
     private static LocBundle Bundle(params (string TableName, LocEntry[] Entries)[] tables) =>
