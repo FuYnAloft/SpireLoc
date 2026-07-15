@@ -2,6 +2,7 @@ using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.NodeDeserializers;
 using SpireLoc.Core.Execution;
 using SpireLoc.Core.Models;
 using SpireLoc.Core.Registration;
@@ -24,8 +25,38 @@ public sealed class ReadYamlLocalizationDirectoryOperation(
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(NullNamingConvention.Instance)
             .WithAttemptingUnquotedStringTypeDeserialization()
+            .WithNodeDeserializer(
+                new EmptyBlockScalarNodeDeserializer(),
+                static location => location.Before<ScalarNodeDeserializer>())
             .Build();
         return NestedLocalizationMapping.Read(deserializer.Deserialize<object>(text));
+    }
+
+    private sealed class EmptyBlockScalarNodeDeserializer : INodeDeserializer
+    {
+        private const string StringTag = "tag:yaml.org,2002:str";
+
+        public bool Deserialize(
+            IParser reader,
+            Type expectedType,
+            Func<IParser, Type, object?> nestedObjectDeserializer,
+            out object? value,
+            ObjectDeserializer rootDeserializer)
+        {
+            value = null;
+            if (expectedType != typeof(object) ||
+                !reader.Accept<Scalar>(out var scalar) ||
+                scalar.Value.Length != 0 ||
+                scalar.Style is not (ScalarStyle.Literal or ScalarStyle.Folded) ||
+                !scalar.Tag.IsEmpty && scalar.Tag.Value != StringTag)
+            {
+                return false;
+            }
+
+            reader.Consume<Scalar>();
+            value = string.Empty;
+            return true;
+        }
     }
 }
 

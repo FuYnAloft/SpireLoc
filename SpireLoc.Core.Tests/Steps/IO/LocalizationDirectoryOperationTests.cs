@@ -127,6 +127,40 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
         Assert.Empty(result.Workspace.Require<LocBundle>("main"));
     }
 
+    [Theory]
+    [InlineData("|-")]
+    [InlineData("|")]
+    [InlineData(">-")]
+    [InlineData(">")]
+    [InlineData("\"\"")]
+    public void YamlReaderPreservesExplicitEmptyStringLeaves(string scalar)
+    {
+        WriteFile("zhs/cards.yaml", $"card:\n  description: {scalar}\n");
+
+        var result = new ReadYamlLocalizationDirectoryOperation(_root)
+            .Execute(LocWorkspace.Empty, LocExecutionContext.Default);
+
+        Assert.Equal(LocOperationStatus.Succeeded, result.Status);
+        var entry = result.Workspace.Require<LocBundle>("main")
+            [new LocTablePath("zhs", "cards")].Single();
+        Assert.Equal(new LocEntry(["card", "description"], string.Empty), entry);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("null")]
+    [InlineData("~")]
+    public void YamlReaderRejectsNullLeaves(string scalar)
+    {
+        WriteFile("zhs/cards.yaml", $"card:\n  description: {scalar}\n");
+
+        var result = new ReadYamlLocalizationDirectoryOperation(_root)
+            .Execute(LocWorkspace.Empty, LocExecutionContext.Default);
+
+        Assert.Equal(LocOperationStatus.Failed, result.Status);
+        Assert.Empty(result.Workspace.Require<LocBundle>("main"));
+    }
+
     [Fact]
     public void WriterOverwritesMatchingFileAndPreservesUnrelatedFile()
     {
