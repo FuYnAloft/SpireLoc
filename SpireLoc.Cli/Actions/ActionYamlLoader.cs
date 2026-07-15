@@ -7,7 +7,8 @@ namespace SpireLoc.Cli.Actions;
 
 internal sealed class ActionYamlLoader
 {
-    private static readonly HashSet<string> RootFields = ["version", "description", "parameters", "steps"];
+    private static readonly HashSet<string> RootFields =
+        ["schema-version", "version", "description", "parameters", "steps"];
     private static readonly HashSet<string> ParameterFields = ["type", "description", "position", "flag", "default"];
     private static readonly HashSet<string> ReservedParameterNames = ["ActionPath", "ActionDir"];
 
@@ -83,11 +84,26 @@ internal sealed class ActionYamlLoader
         var fields = ReadFields(filePath, root);
         RejectUnknownFields(filePath, root, fields, RootFields, "action");
 
-        var version = fields.TryGetValue("version", out var versionNode)
-            ? ReadInteger(filePath, versionNode, "Action version")
+        var hasSchemaVersion = fields.TryGetValue("schema-version", out var schemaVersionNode);
+        var hasLegacyVersion = fields.TryGetValue("version", out var legacyVersionNode);
+        if (hasSchemaVersion && hasLegacyVersion)
+        {
+            throw Error(
+                filePath,
+                fields["version"],
+                "Action fields 'schema-version' and legacy 'version' cannot be used together.");
+        }
+
+        var versionNode = hasSchemaVersion
+            ? schemaVersionNode
+            : hasLegacyVersion
+                ? legacyVersionNode
+                : null;
+        var schemaVersion = versionNode is not null
+            ? ReadInteger(filePath, versionNode, "Action schema version")
             : 1;
-        if (version != 1)
-            throw Error(filePath, versionNode ?? root, $"Unsupported action version '{version}'.");
+        if (schemaVersion != 1)
+            throw Error(filePath, versionNode ?? root, $"Unsupported action schema version '{schemaVersion}'.");
 
         var description = fields.TryGetValue("description", out var descriptionNode)
             ? ReadString(filePath, descriptionNode, "Action description")
@@ -100,7 +116,7 @@ internal sealed class ActionYamlLoader
             throw Error(filePath, root, "Action field 'steps' is required.");
         var steps = ParseSteps(filePath, stepsNode);
 
-        return new ActionDocument(filePath, isBuiltin, version, description, parameters, steps);
+        return new ActionDocument(filePath, isBuiltin, schemaVersion, description, parameters, steps);
     }
 
     private static IReadOnlyList<ActionParameterDefinition> ParseParameters(string filePath, YamlNode node)

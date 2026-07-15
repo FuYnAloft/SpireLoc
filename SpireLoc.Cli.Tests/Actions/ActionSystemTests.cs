@@ -35,7 +35,7 @@ public sealed class ActionSystemTests : IDisposable
                   reversed: $(reversed)
             """);
         Write("forward.yaml", """
-            version: 1
+            schema-version: 1
             parameters:
               mod-id:
                 type: string
@@ -391,7 +391,9 @@ public sealed class ActionSystemTests : IDisposable
     [InlineData("parameters:\n  ActionDir:\n    type: string\nsteps: []\n", "reserved")]
     [InlineData("steps:\n  - model-id:\n      kind: []\n", "non-empty")]
     [InlineData("unknown: true\nsteps: []\n", "Unknown action field")]
-    [InlineData("version: 2\nsteps: []\n", "Unsupported action version")]
+    [InlineData("schema-version: 2\nsteps: []\n", "Unsupported action schema version")]
+    [InlineData("version: 2\nsteps: []\n", "Unsupported action schema version")]
+    [InlineData("schema-version: 1\nversion: 1\nsteps: []\n", "cannot be used together")]
     public void LoaderRejectsInvalidSchemas(string yaml, string expectedMessage)
     {
         Write("invalid.yaml", yaml);
@@ -400,6 +402,16 @@ public sealed class ActionSystemTests : IDisposable
             new ActionYamlLoader().Load(Path.Combine(_root, "invalid.yaml")));
 
         Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void LoaderAcceptsLegacyVersionAsSchemaVersionAlias()
+    {
+        Write("legacy.yaml", "version: 1\nsteps: []\n");
+
+        var document = new ActionYamlLoader().Load(Path.Combine(_root, "legacy.yaml"));
+
+        Assert.Equal(1, document.SchemaVersion);
     }
 
     [Fact]

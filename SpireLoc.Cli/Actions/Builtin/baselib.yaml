@@ -1,4 +1,4 @@
-version: 1
+schema-version: 1
 description: Convert localization between BaseLib source and game directory layouts.
 parameters:
   namespace-top:

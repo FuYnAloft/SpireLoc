@@ -27,7 +27,7 @@ internal sealed record ActionParameterDefinition(
 internal sealed record ActionDocument(
     string FilePath,
     bool IsBuiltin,
-    int Version,
+    int SchemaVersion,
     string? Description,
     IReadOnlyList<ActionParameterDefinition> Parameters,
     IReadOnlyList<ActionStep> Steps);
