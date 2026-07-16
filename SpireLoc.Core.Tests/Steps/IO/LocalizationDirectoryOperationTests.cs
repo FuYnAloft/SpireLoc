@@ -108,9 +108,9 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
 
     [Theory]
     [MemberData(nameof(Formats))]
-    public void NestedReadersRejectNonStringLeaves(FormatOperations format)
+    public void TypedNestedReadersRejectNonStringLeaves(FormatOperations format)
     {
-        if (format.IsFlat)
+        if (format.IsFlat || format.Extension == ".yaml")
             return;
 
         var content = format.Extension switch
@@ -128,12 +128,14 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
     }
 
     [Theory]
-    [InlineData("|-")]
-    [InlineData("|")]
-    [InlineData(">-")]
-    [InlineData(">")]
-    [InlineData("\"\"")]
-    public void YamlReaderPreservesExplicitEmptyStringLeaves(string scalar)
+    [InlineData("true", "true")]
+    [InlineData("1", "1")]
+    [InlineData("\"\"", "")]
+    [InlineData("|-", "")]
+    [InlineData("|", "")]
+    [InlineData(">-", "")]
+    [InlineData(">", "")]
+    public void YamlReaderTreatsNonNullScalarsAsStrings(string scalar, string expected)
     {
         WriteFile("zhs/cards.yaml", $"card:\n  description: {scalar}\n");
 
@@ -143,7 +145,7 @@ public sealed class LocalizationDirectoryOperationTests : IDisposable
         Assert.Equal(LocOperationStatus.Succeeded, result.Status);
         var entry = result.Workspace.Require<LocBundle>("main")
             [new LocTablePath("zhs", "cards")].Single();
-        Assert.Equal(new LocEntry(["card", "description"], string.Empty), entry);
+        Assert.Equal(new LocEntry(["card", "description"], expected), entry);
     }
 
     [Theory]
