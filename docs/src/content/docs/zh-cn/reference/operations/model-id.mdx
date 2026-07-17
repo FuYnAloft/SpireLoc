@@ -1,0 +1,71 @@
+---
+title: Model ID Operations
+description: 转换原版、RitsuLib、BaseLib 或自定义前缀的 Model ID 键段。
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Model ID processor 只修改选中的结构化 key 段，保留 value 与其他段。默认读取 `--from main`、写入 `--to main`，并允许覆盖目标槽。添加 `--reversed` 后从游戏 ID 转回源码形式。
+
+## `model-id vanilla`
+
+```text
+--model-id vanilla [--reversed] [--from <slot>] [--to <slot>]
+```
+
+不加前缀，只使用原版游戏的 slug 规则。
+
+## `model-id ritsulib`
+
+```text
+--model-id ritsulib <mod-id> [--reversed] [--from <slot>] [--to <slot>]
+```
+
+规范化 Mod ID，并按表添加类别。`MyMod` 的 `cards` 表会把 `ArcaneBolt` 转为 `MY_MOD_CARD_ARCANE_BOLT`。
+
+RitsuLib 还把 `model_capabilities` 识别为 `MODEL_CAPABILITY`，把历史 `modelcapabilities` 识别为 `MODELCAPABILITY`。`static_hover_tips` 因为混合无关 key 类别而被刻意跳过。
+
+## `model-id baselib`
+
+```text
+--model-id baselib <namespace-top> [--reversed] [--from <slot>] [--to <slot>]
+```
+
+把 `namespace-top` 转成大写并添加 `-`。使用 `MyMod` 时，`ArcaneBolt` 变为 `MYMOD-ARCANE_BOLT`。
+
+## `model-id prefix`
+
+```text
+--model-id prefix <prefix> <table>... [--reversed] [--from <slot>] [--to <slot>]
+```
+
+每个表规则写作 `table` 或 `table:keyIndex`，默认 index 是 `0`。
+
+```powershell
+spireloc pipe `
+  --input yaml ./source `
+  --model-id prefix TEST_ cards ancients:2 `
+  --output flat-json ./game
+```
+
+重复的表/index 规则、负 index 与无效格式都会被拒绝。
+
+## 标准表路由
+
+RitsuLib 处理标准 model 表中除 `static_hover_tips` 外的表，再加两张 ModelCapability 源码表；每张表会获得与 model 类型相符的类别。
+
+Vanilla 与 BaseLib 会处理下列表的 key 第 0 段：
+
+`achievements`、`acts`、`afflictions`、`card_keywords`、`cards`、`characters`、`enchantments`、`encounters`、`events`、`modifiers`、`monsters`、`orbs`、`potions`、`powers`、`relics`、`static_hover_tips`。
+
+## 特殊路由与保留规则
+
+- `ancients`：第 0 段是 ancient ID；只有 `talk` 下的第 2 段是 character ID。`ANY` 与 `firstVisitEver` 是选择器，保持不变；`pages` 等其他分支不会把第 2 段当成角色。
+- `SEA_GLASS`：在标准 model 表中，第 1 段也会作为 character ID 处理。
+- 符合 ASCII `[A-Z_-]+` 的源码段会被视为已经是游戏形式并直接保留。例如原版 ancient ID `DARV` 不会再次添加前缀。
+- 反向转换遇到不符合预期的前缀时会保留原值。全大写的保留 ID 不报警，其他意外 ID 产生 warning。
+- key index 越界会报告 error，但其他条目与有效规则仍继续执行。
+
+<Aside type="note">
+  Model ID transform 从不使用点号拼接或拆分 key。flat JSON 的折叠与展开只属于 input/output operation。
+</Aside>

@@ -1,0 +1,22 @@
+---
+title: Merge Operation
+description: 按确定顺序覆盖合并本地化 bundle 槽。
+---
+
+```text
+--merge [<from>...] [--to <slot>]
+```
+
+显式提供来源槽时，会按命令中的顺序合并。同一语言、表、结构化 key 冲突时，后面的 bundle 覆盖前面的 bundle。
+
+```powershell
+spireloc pipe --merge common mod overrides --to main
+```
+
+省略 `from` 时，operation 会选择 workspace 中全部 `LocBundle` 槽，并按槽名 ordinal 排序后合并：
+
+```powershell
+spireloc pipe --merge --to main
+```
+
+`to` 默认是 `main`，可以覆盖已有槽。被覆盖的条目保留早先位置，新 key 按来源顺序追加。显式来源必须存在且包含 `LocBundle`，不能重复；没有任何 bundle 来源时 operation 失败。

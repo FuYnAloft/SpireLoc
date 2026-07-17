@@ -1,0 +1,34 @@
+---
+title: Output Operations
+description: 把本地化 bundle 写成目录化 YAML、TOML、nested JSON 或 flat JSON。
+---
+
+```text
+--output yaml <path> [--from <slot>]
+--output toml <path> [--from <slot>]
+--output nested-json <path> [--from <slot>]
+--output flat-json <path> [--from <slot>]
+```
+
+`path` 必填；`from` 默认是 `main`，且必须包含 `LocBundle`。Writer 不修改 workspace。
+
+| Kind | 输出 |
+| --- | --- |
+| `yaml` | 嵌套 `.yaml` mapping；多行值与特殊首字符使用 literal scalar。 |
+| `toml` | 使用字符串值的嵌套 `.toml` table。 |
+| `nested-json` | 缩进的嵌套 `.json` object，使用 relaxed escaping。 |
+| `flat-json` | 缩进 `.json`；key 段用 `.` 连接成顶层属性。 |
+
+文件使用无 BOM 的 UTF-8。Writer 会创建必要目录并覆盖匹配的目标文件，但保留目标树中无关文件，不负责清理已经过期的表。
+
+## 写入前验证
+
+开始写文件之前，所有目标表都会先完成序列化。如果一个嵌套 key 同时是字符串叶子和父路径，或两个条目折叠成同一个 flat key，operation 会报告 error，并且不会开始写任何目标文件。文件系统异常也会转换成 writer diagnostic。
+
+```yaml title="无效的嵌套形状"
+Card: 一个字符串
+Card:
+  title: 不能同时作为嵌套对象
+```
+
+如果打包要求目标目录精确等于当前 bundle，请在 SpireLoc 外使用全新的 staging 目录或显式清理步骤。

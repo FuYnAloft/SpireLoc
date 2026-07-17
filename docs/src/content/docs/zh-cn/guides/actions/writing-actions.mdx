@@ -1,0 +1,97 @@
+---
+title: 编写 Action
+description: 声明参数、operation step、组合、模板与基础条件。
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+创建一个 YAML 或 JSON 文件，写入 schema version 1、可选参数，以及按顺序排列的 `steps`。
+
+<Steps>
+1. **声明 action 与参数**
+
+   ```yaml
+   schema-version: 1
+   description: Convert this mod's source localization.
+
+   parameters:
+     mod-id:
+       type: string
+       position: 0
+       description: RitsuLib Mod ID.
+     source-path:
+       type: string
+       default: ./localization
+     reversed:
+       type: bool
+       flag: true
+       default: false
+   ```
+
+   参数类型支持 `string`、`bool` 与 `int`。没有默认值的参数都是必填参数。
+
+2. **添加 operation step**
+
+   Operation 主命令成为 step 的 key，子命令写入 `kind`，所有 operation 参数都使用具名字段。
+
+   ```yaml
+   steps:
+     - input:
+         kind: yaml
+         path: $(source-path)
+
+     - model-id:
+         kind: ritsulib
+         mod-id: $(mod-id)
+         reversed: $(reversed)
+
+     - reshape:
+         kind: [ritsulib-model-capability, merge]
+   ```
+
+   列表参数写成 YAML sequence，例如 `table: [cards, relics]`。
+
+3. **使用相对于 action 文件的路径**
+
+   `$(ActionDir)` 是当前 action 文件所在目录，`$(ActionPath)` 是其绝对路径。
+
+   ```yaml
+   - output:
+       kind: flat-json
+       path: $(ActionDir)/../MyMod/localization
+   ```
+
+4. **组合另一个 action**
+
+   `uses` 用来引用子 action。文件引用相对于调用者 action 所在目录解析。子 action 不会继承参数，必须通过 `with` 显式传递。
+
+   ```yaml
+   - uses: ./shared/read-source.yaml
+     with:
+       path: $(source-path)
+       format: yaml
+   ```
+
+5. **按条件包含 step**
+
+   条件会在 action 展开时求值。
+
+   ```yaml
+   - if:
+       not: $(reversed)
+     reshape:
+       kind: [ritsulib-model-capability, merge]
+   ```
+
+   标量布尔值和 `not` 足以覆盖大部分简单分支；[`equals`、`all` 与 `any`](../../../reference/action-syntax/#条件) 的完整写法在参考页中。
+</Steps>
+
+## 模板会保留标量类型
+
+当整个标量恰好是 `$(reversed)` 时，它仍是布尔值；嵌在 `output-$(build-number)` 一类字符串中时，展开结果会成为文本。需要原样输出 `$(name)` 时写成 `$$(name)`。
+
+<Aside type="caution" title="Operation 顺序仍由作者负责">
+  Action 不会自动把 pipeline 倒序。reshape 与 Model ID 转换的相对位置需要改变时，应当用条件明确声明正向和反向两套步骤。[内置 action](../../../reference/builtin-actions/) 是完整示例。
+</Aside>
+
+使用 `spireloc action run ./convert.yaml ...` 运行。调用形式见[使用 Action](../using-actions/)，全部校验规则见 [Action 语法](../../../reference/action-syntax/)。

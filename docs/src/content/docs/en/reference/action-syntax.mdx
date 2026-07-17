@@ -1,0 +1,192 @@
+---
+title: Action Syntax
+description: Complete schema reference for SpireLoc YAML and JSON actions.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Actions are single-document YAML or JSON mappings. JSON uses the same field names and semantics as YAML.
+
+## Root document
+
+```yaml
+schema-version: 1
+description: Optional help text.
+parameters: {}
+steps: []
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `schema-version` | no | Defaults to `1`; currently only version 1 is supported. |
+| `version` | no | Legacy alias for `schema-version`; the two cannot appear together. |
+| `description` | no | String shown by `action list`/`action help` where applicable. |
+| `parameters` | no | Mapping of parameter name to definition. |
+| `steps` | yes | Sequence of operation or `uses` steps; may be empty. |
+
+Unknown root fields, duplicate mapping keys, multiple YAML documents, and non-mapping roots are errors.
+
+## Parameters
+
+```yaml
+parameters:
+  mod-id:
+    type: string
+    description: RitsuLib Mod ID.
+    position: 0
+  retries:
+    type: int
+    default: 1
+  reversed:
+    type: bool
+    flag: true
+    default: false
+```
+
+| Field | Default | Rules |
+| --- | --- | --- |
+| `type` | none | Required: `string`, `bool`, `int`, or alias `integer`. |
+| `description` | none | Optional help text. |
+| `position` | `-1` | Zero-based positional index; positional indexes must be contiguous from 0. |
+| `flag` | `false` | Only valid for `bool`; a flag cannot also be positional. |
+| `default` | none | Converted to the declared type. Without a default, the parameter is required. |
+
+A required positional parameter cannot follow an optional positional parameter. A boolean flag should normally declare `default: false`; otherwise it remains required despite being a flag.
+
+Parameter names cannot be empty, contain whitespace, or begin with `-`. `ActionPath` and `ActionDir` are reserved. A parameter name also cannot conflict with a registered pipeline operation head such as `input` or `output`.
+
+On the CLI, positional values use their declared order, named values use `--name value`, and flags use `--name` with no following value. A parameter cannot be supplied twice.
+
+## Operation steps
+
+Apart from optional `if`, a normal step contains exactly one operation head:
+
+```yaml
+- model-id:
+    kind: ritsulib
+    mod-id: $(mod-id)
+    reversed: $(reversed)
+
+- reshape:
+    kind: [ritsulib-model-capability, split]
+    mod-id: $(mod-id)
+
+- partition:
+    kind: table
+    condition: [cards, relics]
+    matched: selected
+```
+
+`kind` may be omitted for a head-only operation, may be one non-empty string, or may be a non-empty string sequence for a multi-segment path. All other fields are operation parameter names.
+
+An operation argument must be a scalar or a scalar sequence. Sequences can contain strings and integers, but not booleans, nested mappings, or nested sequences. An empty argument sequence is allowed.
+
+The resulting operation path and arguments are validated against the same registry used by `pipe`, including injected `from`/`to` parameters on unary processors.
+
+## `uses` steps
+
+```yaml
+- if: $(include-shared)
+  uses: ./shared.yaml
+  with:
+    mod-id: $(mod-id)
+    reversed: $(reversed)
+```
+
+A `uses` step allows only `if`, `uses`, and `with`:
+
+- `uses` is a non-empty string scalar.
+- `with` is a mapping of child parameter names to scalar values.
+- Child parameters are not inherited from the caller. Every required value must come from `with` or the child's default.
+- A false condition removes the `uses` step before its target is loaded.
+- Cycles are rejected. Maximum action call depth is 64.
+
+Top-level file references are relative to the current working directory. A nested file `uses` path is relative to its caller action's directory. An exact case-sensitive built-in name loads that built-in action; otherwise the reference is treated as a path.
+
+## Templates
+
+```yaml
+path: $(ActionDir)/output
+label: build-$(build-number)
+literal: $$(not-expanded)
+```
+
+- `$(name)` substitutes an action parameter or predefined value.
+- If the entire scalar is exactly one template, its `bool` or `int` type is preserved.
+- A template embedded in other text is formatted invariantly and the result is a string.
+- `$$(name)` emits literal `$(name)`.
+- Empty, unknown, or unterminated templates are errors.
+
+Templates work in operation `kind`, scalar/list arguments, `uses`, `with`, and conditions.
+
+`ActionPath` is the current file action's absolute path; `ActionDir` is its directory. Built-in actions have no real file location, so do not use these predefined values inside a built-in-oriented reusable action.
+
+## Conditions
+
+`if` is evaluated while expanding either an operation or `uses` step. Conditions may be nested recursively.
+
+### Scalar boolean
+
+```yaml
+- if: $(enabled)
+  copy:
+    from: main
+    to: backup
+```
+
+The expanded value must be a boolean or case-insensitive string `true`/`false`.
+
+### `equals`
+
+```yaml
+if:
+  equals: [$(format), yaml]
+```
+
+`equals` requires exactly two scalars. Values of the same scalar type compare by value. Values of different types are formatted invariantly and compared as ordinal strings, so boolean `true` equals string `"true"`.
+
+### `not`
+
+```yaml
+if:
+  not: $(reversed)
+```
+
+Negates one nested condition.
+
+### `all`
+
+```yaml
+if:
+  all:
+    - $(enabled)
+    - not: $(reversed)
+    - equals: [$(format), yaml]
+```
+
+Requires every nested condition to be true. The sequence must be non-empty.
+
+### `any`
+
+```yaml
+if:
+  any:
+    - $(force)
+    - equals: [$(configuration), Release]
+```
+
+Requires at least one nested condition to be true. The sequence must be non-empty.
+
+## YAML scalar interpretation
+
+- Quoted, literal, and folded scalars are strings.
+- Unquoted `true`/`false` are booleans.
+- Unquoted base-10 integer text is an integer.
+- Other non-null scalars are strings.
+- `null`, `Null`, `NULL`, and `~` are not supported.
+
+Because templates preserve scalar types, quote a value when it must remain a string even if it looks like a boolean or integer.
+
+<Aside type="tip">
+  Use `spireloc action help ./action.yaml` to validate and inspect an action's public parameters without executing its operations.
+</Aside>

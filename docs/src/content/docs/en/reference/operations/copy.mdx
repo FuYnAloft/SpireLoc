@@ -1,0 +1,19 @@
+---
+title: Copy Operation
+description: Copy an immutable artifact reference between workspace slots.
+---
+
+```text
+--copy <from> <to>
+```
+
+Both slot names are required and can alternatively be supplied as `--from` and `--to`.
+
+```powershell
+spireloc pipe `
+  --input yaml ./source `
+  --copy main backup `
+  --model-id ritsulib MyMod
+```
+
+The operation copies any immutable artifact reference, not only `LocBundle`. It does not clone or transform the artifact. The destination may be overwritten. A missing source slot reports an error.

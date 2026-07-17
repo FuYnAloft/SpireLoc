@@ -1,0 +1,90 @@
+---
+title: 组织 Pipeline
+description: 使用 pipe、workspace 槽、partition 与 merge 组合本地化 operation。
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`spireloc pipe` 会从命令行参数构造程序，并严格从左到右执行 operation。它不会自行推断来源、目标或转换方向。
+
+```powershell
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --model-id ritsulib MyMod `
+  --reshape ritsulib-model-capability merge `
+  --output flat-json ./MyMod/localization
+```
+
+每个 `--<主命令>` 都会开始一个新 operation；后续 token 一直属于它，直到遇见下一个已注册的主命令。可以这样查看当前命令面：
+
+```powershell
+spireloc operation list
+spireloc operation help model-id ritsulib
+spireloc operation help input
+```
+
+## 用 workspace 槽来思考
+
+Operation 通过具名 workspace 槽交换不可变 artifact。本地化 operation 默认使用 `main` 槽。目标槽允许直接覆盖，语义类似用 `w` 模式打开文件。
+
+```powershell
+spireloc pipe `
+  --input yaml ./common --to common `
+  --input yaml ./mod --to mod `
+  --merge common mod --to main `
+  --output flat-json ./generated
+```
+
+后面的 bundle 会覆盖前面的 bundle。同一语言、表和结构化 key 出现冲突时取后值；无关条目继续保留。
+
+`--model-id`、`--compat`、`--reshape` 等一元处理器会自动获得 `--from` 和 `--to`，两者默认都是 `main`：
+
+```powershell
+--model-id baselib MyMod --from source --to converted
+```
+
+## 转换方向也体现在顺序里
+
+反向 Model ID 转换不只是加一个 flag，相关 reshape 的位置也要倒过来。以 RitsuLib ModelCapability 为例：要先趁游戏前缀仍存在时拆表，再还原源码 ID。
+
+```powershell
+spireloc pipe `
+  --input flat-json ./MyMod/localization `
+  --reshape ritsulib-model-capability split MyMod `
+  --model-id ritsulib MyMod --reversed `
+  --output yaml ./Tools/localization
+```
+
+`--reversed` 只属于它前面的 `--model-id ritsulib` operation。
+
+## 分区与重新合并
+
+可以按表、语言或 entry 路径正则拆分 bundle。同一个 partition operation 中的多个 condition 是 OR 关系。
+
+```powershell
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --partition table cards relics `
+  --output yaml ./selected --from matched `
+  --output yaml ./remaining --from unmatched
+```
+
+正则分区匹配的完整文本是 `language/table/key.segment.path`：
+
+```powershell
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --partition regex '^zhs/cards/' 'title$'
+```
+
+后续需要再次统一处理时，使用 `--merge matched unmatched --to main`。
+
+## Diagnostic 与部分成功
+
+即使前面的 operation 报告 error，runner 仍会执行所有已声明 operation。这样目录 reader 可以在一个文件损坏时保留其他有效文件；同时，每个 writer 也必须自行验证输入。只要收集到任何 error，CLI 就会输出 diagnostic 并以 `1` 退出；命令行或 schema 本身无效时以 `2` 退出。
+
+<Aside type="tip" title="把稳定流程封装起来">
+  Pipeline 稳定后，可以把它写成 [action](../actions/writing-actions/)，只暴露不同项目或不同方向真正会变化的参数。
+</Aside>
+
+完整命令与参数见 [Operations 参考](../../reference/operations/input/)。

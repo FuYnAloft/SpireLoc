@@ -1,0 +1,35 @@
+---
+title: Compatibility Operations
+description: Convert MinionLib component localization between source and game layouts.
+---
+
+Compatibility operations combine a format-specific table move with the ID adjustment required by an external library. They default to `--from main --to main`.
+
+## `minionlib-component to-game`
+
+```text
+--compat minionlib-component to-game <namespace-top> [--from <slot>] [--to <slot>]
+```
+
+For every language, this operation:
+
+1. Reads entries from the source-only `components` table.
+2. Adds the MinionLib namespace key segment.
+3. Appends the transformed entries to `cards`.
+4. Removes the `components` table.
+
+Existing `cards` entries remain first. If no `cards` table exists, one is created.
+
+## `minionlib-component to-source`
+
+```text
+--compat minionlib-component to-source <namespace-top> [--from <slot>] [--to <slot>]
+```
+
+This operation identifies entries whose first key segment contains at least one lowercase character, validates and removes the namespace segment, and writes them to `components`. Non-component cards remain in place. Use a namespace spelling containing lowercase characters so the reversed operation can recognize the generated entries.
+
+`namespace-top` is required, cannot be blank, and must be one key segment rather than a dot-separated path. A namespace mismatch is reported through diagnostics.
+
+Use the built-in RitsuLib or BaseLib action's `--minionlib-components` flag for the usual full workflow. `--minionlib-namespace-top` overrides the action's default namespace.
+
+These are compatibility operations rather than pure reshapes because they both move entries and add or remove the component ID namespace.

@@ -1,0 +1,43 @@
+---
+title: Reshape Operations
+description: Move RitsuLib ModelCapability entries between source-only tables and the game cards table.
+---
+
+Reshape operations only change table placement. They do not transform IDs. Both commands default to `--from main --to main`.
+
+## `ritsulib-model-capability merge`
+
+```text
+--reshape ritsulib-model-capability merge [--from <slot>] [--to <slot>]
+```
+
+For every language, entries from `model_capabilities` and historical `modelcapabilities` are appended to `cards`, then both source tables are removed. Existing card entries stay first; capability tables retain bundle order.
+
+Run RitsuLib Model ID conversion before merge:
+
+```powershell
+--model-id ritsulib MyMod `
+--reshape ritsulib-model-capability merge
+```
+
+## `ritsulib-model-capability split`
+
+```text
+--reshape ritsulib-model-capability split [<mod-id>] [--from <slot>] [--to <slot>]
+```
+
+The split operation extracts matching entries from `cards` into:
+
+- `model_capabilities` for `_MODEL_CAPABILITY_` IDs.
+- `modelcapabilities` for historical `_MODELCAPABILITY_` IDs.
+
+Pass `mod-id` to match the exact normalized prefixes for one mod. This is the stable form and prevents another mod's entries from being extracted. Without a Mod ID, SpireLoc uses the two category substrings heuristically and emits a warning.
+
+Split while game prefixes are still present, then reverse Model ID conversion:
+
+```powershell
+--reshape ritsulib-model-capability split MyMod `
+--model-id ritsulib MyMod --reversed
+```
+
+Both operations preserve entry order within each destination. A destination table is created only when at least one entry is extracted.

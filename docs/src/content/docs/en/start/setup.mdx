@@ -1,0 +1,101 @@
+---
+title: Environment Setup
+description: Install SpireLoc globally or per project and automate localization generation with MSBuild.
+---
+
+import { Aside, CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
+
+SpireLoc is a .NET 9 tool. Install the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) first, then choose a global or project-local installation.
+
+## Install SpireLoc
+
+<Tabs syncKey="install-scope">
+  <TabItem label="Project tool (recommended)">
+    A tool manifest pins the tool for the repository and makes onboarding and CI reproducible.
+
+    ```powershell
+    dotnet new tool-manifest
+    dotnet tool install SpireLoc --prerelease
+    dotnet tool restore
+    dotnet tool run spireloc -- --version
+    ```
+
+    Commit `.config/dotnet-tools.json`. After a fresh clone, run `dotnet tool restore` once.
+  </TabItem>
+  <TabItem label="Global tool">
+    ```powershell
+    dotnet tool install --global SpireLoc --prerelease
+    spireloc --version
+    ```
+
+    Update or uninstall it with:
+
+    ```powershell
+    dotnet tool update --global SpireLoc --prerelease
+    dotnet tool uninstall --global SpireLoc
+    ```
+  </TabItem>
+</Tabs>
+
+<Aside type="note" title="Preview packages">
+  SpireLoc is currently published as a prerelease tool, so installation and updates need `--prerelease`.
+</Aside>
+
+## Start using SpireLoc
+
+<CardGrid>
+  <LinkCard title="Use with RitsuLib" href="../ritsulib/" description="Use category-aware IDs and source-side ModelCapability tables." />
+  <LinkCard title="Use with BaseLib" href="../baselib/" description="Create the source layout and run the built-in BaseLib action." />
+</CardGrid>
+
+## Automate conversion
+
+The examples below assume a project-local tool, human-authored files in `Tools/localization`, and generated files in `<ProjectName>/localization`.
+
+Add shared paths to the mod project's `.csproj`:
+
+```xml
+<PropertyGroup>
+  <SpireLocCommand>dotnet tool run spireloc --</SpireLocCommand>
+  <LocalizationSource>$(MSBuildProjectDirectory)/Tools/localization</LocalizationSource>
+  <LocalizationOutput>$(MSBuildProjectDirectory)/$(MSBuildProjectName)/localization</LocalizationOutput>
+</PropertyGroup>
+```
+
+For a global installation, set `<SpireLocCommand>spireloc</SpireLocCommand>` instead.
+
+### Before every build
+
+Use this when generated JSON should always be current before compilation, analyzers, or post-build deployment:
+
+```xml title="RitsuLib project"
+<Target Name="GenerateLocalizationForBuild"
+        BeforeTargets="BeforeBuild"
+        Condition="'$(DesignTimeBuild)' != 'true'">
+  <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+        Command="$(SpireLocCommand) ritsulib MyMod &quot;$(LocalizationSource)&quot; &quot;$(LocalizationOutput)&quot;" />
+</Target>
+```
+
+For BaseLib, replace `ritsulib MyMod` with `baselib MyMod`.
+
+### Immediately before packaging
+
+Some Godot mod projects define a target such as `GodotPublish` that runs after `dotnet publish`, imports resources, and then calls `godot --export-pack`. Attach the conversion before that target so JSON exists before Godot reads the project:
+
+```xml title="RitsuLib project with a GodotPublish target"
+<Target Name="GenerateLocalizationForPackage"
+        BeforeTargets="GodotPublish"
+        Condition="'$(DesignTimeBuild)' != 'true'">
+  <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+        Command="$(SpireLocCommand) ritsulib MyMod &quot;$(LocalizationSource)&quot; &quot;$(LocalizationOutput)&quot;" />
+</Target>
+```
+
+`GodotPublish` is a project-defined name, not a universal Godot SDK hook. Replace it with the target that immediately precedes resource import or PCK export in your project.
+
+<Aside type="caution" title="Choose the event that owns generated files">
+  `dotnet publish` normally includes a build. Enabling both examples may run conversion twice. Prefer build-time generation when local builds need the JSON; prefer the packaging hook when only distributable packages need it.
+</Aside>
+
+Do not hide `dotnet tool restore` inside every build. Restore once during developer setup and as an explicit CI step, then let builds run without unexpected network access.

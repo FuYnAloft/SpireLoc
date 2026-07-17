@@ -1,0 +1,97 @@
+---
+title: Write Actions
+description: Define parameters, operation steps, composition, templates, and basic conditions.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Create a YAML or JSON file with schema version 1, optional parameters, and an ordered `steps` sequence.
+
+<Steps>
+1. **Declare the action and its parameters**
+
+   ```yaml
+   schema-version: 1
+   description: Convert this mod's source localization.
+
+   parameters:
+     mod-id:
+       type: string
+       position: 0
+       description: RitsuLib Mod ID.
+     source-path:
+       type: string
+       default: ./localization
+     reversed:
+       type: bool
+       flag: true
+       default: false
+   ```
+
+   Supported parameter types are `string`, `bool`, and `int`. Parameters without defaults are required.
+
+2. **Add operation steps**
+
+   The operation head becomes the step key. Subcommands go in `kind`; all operation arguments are named fields.
+
+   ```yaml
+   steps:
+     - input:
+         kind: yaml
+         path: $(source-path)
+
+     - model-id:
+         kind: ritsulib
+         mod-id: $(mod-id)
+         reversed: $(reversed)
+
+     - reshape:
+         kind: [ritsulib-model-capability, merge]
+   ```
+
+   A list parameter is written as a YAML sequence, for example `table: [cards, relics]`.
+
+3. **Use file-relative paths**
+
+   `$(ActionDir)` is the directory containing the current action file, and `$(ActionPath)` is its absolute path.
+
+   ```yaml
+   - output:
+       kind: flat-json
+       path: $(ActionDir)/../MyMod/localization
+   ```
+
+4. **Compose another action**
+
+   `uses` references a child action. File references are relative to the caller action's directory. Child parameters are not inherited, so pass them explicitly with `with`.
+
+   ```yaml
+   - uses: ./shared/read-source.yaml
+     with:
+       path: $(source-path)
+       format: yaml
+   ```
+
+5. **Conditionally include steps**
+
+   Conditions are evaluated while the action expands.
+
+   ```yaml
+   - if:
+       not: $(reversed)
+     reshape:
+       kind: [ritsulib-model-capability, merge]
+   ```
+
+   Scalar booleans and `not` cover most simple branches. The reference documents [`equals`, `all`, and `any`](../../../reference/action-syntax/#conditions).
+</Steps>
+
+## Templates preserve scalar types
+
+When a scalar is exactly `$(reversed)`, the boolean remains a boolean. Inside a larger string such as `output-$(build-number)`, the expanded value becomes text. Write `$$(name)` when the output should literally contain `$(name)`.
+
+<Aside type="caution" title="Operation order remains your responsibility">
+  Actions do not automatically reverse a pipeline. Use conditions to declare the forward and reversed sequences explicitly when reshaping must move around a Model ID transform. The [built-in actions](../../../reference/builtin-actions/) are complete examples.
+</Aside>
+
+Run the action with `spireloc action run ./convert.yaml ...`. See [Use Actions](../using-actions/) for invocation forms and [Action syntax](../../../reference/action-syntax/) for every validation rule.

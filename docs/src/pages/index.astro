@@ -1,0 +1,27 @@
+---
+const baseUrl = import.meta.env.BASE_URL;
+const safeBase = baseUrl.startsWith('/') ? baseUrl : `/${baseUrl}`;
+const finalBase = safeBase.endsWith('/') ? safeBase : `${safeBase}/`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="robots" content="noindex" />
+		<title>Redirecting...</title>
+		<script is:inline define:vars={{ finalBase }}>
+			const language = (navigator.language || 'en').toLowerCase();
+			const locale = language.startsWith('zh') ? 'zh-cn/' : 'en/';
+			window.location.replace(finalBase + locale);
+		</script>
+		<noscript>
+			<meta http-equiv="refresh" content={`0;url=${finalBase}en/`} />
+		</noscript>
+	</head>
+	<body>
+		<noscript>
+			<a href={`${finalBase}en/`}>Continue to the English documentation</a>
+		</noscript>
+	</body>
+</html>

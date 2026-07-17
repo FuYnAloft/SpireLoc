@@ -1,0 +1,192 @@
+---
+title: Action 详细写法
+description: SpireLoc YAML 与 JSON action 的完整 schema 参考。
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Action 是只包含一个 document 的 YAML 或 JSON mapping。JSON 与 YAML 使用相同字段和语义。
+
+## 根文档
+
+```yaml
+schema-version: 1
+description: Optional help text.
+parameters: {}
+steps: []
+```
+
+| 字段 | 必填 | 含义 |
+| --- | --- | --- |
+| `schema-version` | 否 | 默认为 `1`；当前只支持 version 1。 |
+| `version` | 否 | `schema-version` 的旧别名；两者不能同时出现。 |
+| `description` | 否 | 字符串，在适用位置由 `action list`/`action help` 显示。 |
+| `parameters` | 否 | 参数名到参数定义的 mapping。 |
+| `steps` | 是 | operation 或 `uses` step 的 sequence，可以为空。 |
+
+未知根字段、重复 mapping key、多个 YAML document，以及非 mapping 根节点都会报错。
+
+## 参数
+
+```yaml
+parameters:
+  mod-id:
+    type: string
+    description: RitsuLib Mod ID.
+    position: 0
+  retries:
+    type: int
+    default: 1
+  reversed:
+    type: bool
+    flag: true
+    default: false
+```
+
+| 字段 | 默认值 | 规则 |
+| --- | --- | --- |
+| `type` | 无 | 必填：`string`、`bool`、`int`，或别名 `integer`。 |
+| `description` | 无 | 可选帮助文本。 |
+| `position` | `-1` | 从 0 开始的位置索引，所有位置必须从 0 连续。 |
+| `flag` | `false` | 只适用于 `bool`；flag 不能同时是位置参数。 |
+| `default` | 无 | 转换为声明类型；没有默认值时参数必填。 |
+
+可选位置参数之后不能再有必填位置参数。布尔 flag 通常应同时声明 `default: false`，否则它即使是 flag 也仍然必填。
+
+参数名不能为空、包含空白或以 `-` 开头。`ActionPath` 与 `ActionDir` 是保留名。参数名也不能与 `input`、`output` 一类已注册 pipeline operation 主命令冲突。
+
+CLI 中的位置值按声明顺序传入，具名值写成 `--name value`，flag 只写 `--name`。同一参数不能提供两次。
+
+## Operation step
+
+除可选 `if` 外，普通 step 必须恰好包含一个 operation 主命令：
+
+```yaml
+- model-id:
+    kind: ritsulib
+    mod-id: $(mod-id)
+    reversed: $(reversed)
+
+- reshape:
+    kind: [ritsulib-model-capability, split]
+    mod-id: $(mod-id)
+
+- partition:
+    kind: table
+    condition: [cards, relics]
+    matched: selected
+```
+
+只有主命令时可以省略 `kind`；也可以写成一个非空字符串，或用非空字符串 sequence 表示多段路径。其他字段都是 operation 参数名。
+
+Operation 参数必须是标量或标量 sequence。Sequence 可包含字符串和整数，不能包含布尔值、嵌套 mapping 或嵌套 sequence；空参数 sequence 合法。
+
+最终 operation 路径与参数会交给和 `pipe` 相同的 registry 校验，其中也包括一元 processor 自动注入的 `from`/`to` 参数。
+
+## `uses` step
+
+```yaml
+- if: $(include-shared)
+  uses: ./shared.yaml
+  with:
+    mod-id: $(mod-id)
+    reversed: $(reversed)
+```
+
+`uses` step 只允许 `if`、`uses` 与 `with`：
+
+- `uses` 必须是非空字符串标量。
+- `with` 是子 action 参数名到标量值的 mapping。
+- 子 action 不继承调用者参数。所有必填值必须来自 `with` 或子 action 默认值。
+- 条件为 false 时，会在加载目标前移除该 `uses` step。
+- 循环调用会被拒绝，最大 action 调用深度是 64。
+
+顶层文件引用相对于当前工作目录解析；嵌套文件的 `uses` 路径相对于调用者 action 目录。精确且区分大小写地匹配内置名称时会加载内置 action，否则按路径处理。
+
+## 模板
+
+```yaml
+path: $(ActionDir)/output
+label: build-$(build-number)
+literal: $$(not-expanded)
+```
+
+- `$(name)` 替换 action 参数或预定义值。
+- 整个标量恰好是一个模板时，会保留 `bool` 或 `int` 类型。
+- 模板嵌入其他文本时按 invariant 格式化，结果是字符串。
+- `$$(name)` 输出字面量 `$(name)`。
+- 空、未知或未闭合模板都会报错。
+
+模板可用于 operation `kind`、标量/列表参数、`uses`、`with` 与条件。
+
+`ActionPath` 是当前文件 action 的绝对路径，`ActionDir` 是所在目录。内置 action 没有真实文件位置，因此面向内置环境复用的 action 不应依赖这两个预定义值。
+
+## 条件
+
+`if` 在展开 operation 或 `uses` step 时求值，条件可以递归嵌套。
+
+### 布尔标量
+
+```yaml
+- if: $(enabled)
+  copy:
+    from: main
+    to: backup
+```
+
+展开值必须是布尔值，或不区分大小写的字符串 `true`/`false`。
+
+### `equals`
+
+```yaml
+if:
+  equals: [$(format), yaml]
+```
+
+`equals` 必须有两个标量。同一标量类型按值比较；不同类型先按 invariant 格式化，再按 ordinal 字符串比较，因此布尔 `true` 等于字符串 `"true"`。
+
+### `not`
+
+```yaml
+if:
+  not: $(reversed)
+```
+
+对一个嵌套条件取反。
+
+### `all`
+
+```yaml
+if:
+  all:
+    - $(enabled)
+    - not: $(reversed)
+    - equals: [$(format), yaml]
+```
+
+要求所有嵌套条件为 true；sequence 不能为空。
+
+### `any`
+
+```yaml
+if:
+  any:
+    - $(force)
+    - equals: [$(configuration), Release]
+```
+
+要求至少一个嵌套条件为 true；sequence 不能为空。
+
+## YAML 标量解释
+
+- 带引号、literal 与 folded 标量都是字符串。
+- 未加引号的 `true`/`false` 是布尔值。
+- 未加引号的十进制整数文本是整数。
+- 其他非 null 标量都是字符串。
+- 不支持 `null`、`Null`、`NULL` 与 `~`。
+
+模板会保留标量类型，因此一个看起来像布尔值或整数的值必须保持字符串时，请显式加引号。
+
+<Aside type="tip">
+  使用 `spireloc action help ./action.yaml` 可以在不执行 operation 的情况下校验 action，并查看它公开的参数。
+</Aside>

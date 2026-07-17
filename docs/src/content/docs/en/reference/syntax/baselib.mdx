@@ -1,0 +1,329 @@
+---
+title: BaseLib
+description: Compare BaseLib localization as required by the game with four equivalent SpireLoc source formats.
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+These examples use BaseLib top-level namespace `MyMod`, which becomes the game prefix `MYMOD-`. The game files always use flat JSON and fully prefixed IDs. SpireLoc source files use short model names and may use any of the four equivalent formats below.
+
+All source tabs share the same selection. Switch format in one table and the other tables, this page in Chinese, and the RitsuLib comparison will follow.
+
+The built-in action defaults to YAML. For the other tabs, pass `--source-format toml`, `--source-format nested-json`, or `--source-format flat-json` respectively.
+
+<Aside type="note">
+  Flat JSON can also be a source format. Its keys still use source-style IDs such as `ArcaneBolt`; `--model-id baselib MyMod` adds the BaseLib prefix later.
+</Aside>
+
+## `cards`
+
+```json title="MyMod/localization/eng/cards.json"
+{
+  "MYMOD-ARCANE_BOLT.title": "Arcane Bolt",
+  "MYMOD-ARCANE_BOLT.description": "Deal {Damage} damage.\nDraw 1 card."
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/eng/cards.yaml"
+ArcaneBolt:
+  title: Arcane Bolt
+  description: |-
+    Deal {Damage} damage.
+    Draw 1 card.
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/eng/cards.toml"
+[ArcaneBolt]
+title = "Arcane Bolt"
+description = """
+Deal {Damage} damage.
+Draw 1 card."""
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/eng/cards.json"
+{
+  "ArcaneBolt": {
+    "title": "Arcane Bolt",
+    "description": "Deal {Damage} damage.\nDraw 1 card."
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/eng/cards.json"
+{
+  "ArcaneBolt.title": "Arcane Bolt",
+  "ArcaneBolt.description": "Deal {Damage} damage.\nDraw 1 card."
+}
+```
+
+</TabItem>
+</Tabs>
+
+## `characters`
+
+The `banter.alive.endTurnPing` field shows that only the model ID segment changes; deeper key segments remain structured.
+
+```json title="MyMod/localization/eng/characters.json"
+{
+  "MYMOD-SEER.title": "The Seer",
+  "MYMOD-SEER.titleObject": "The Seer",
+  "MYMOD-SEER.description": "A traveler guided by distant stars.",
+  "MYMOD-SEER.banter.alive.endTurnPing": "The stars are aligned."
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/eng/characters.yaml"
+Seer:
+  title: The Seer
+  titleObject: The Seer
+  description: A traveler guided by distant stars.
+  banter:
+    alive:
+      endTurnPing: The stars are aligned.
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/eng/characters.toml"
+[Seer]
+title = "The Seer"
+titleObject = "The Seer"
+description = "A traveler guided by distant stars."
+
+[Seer.banter.alive]
+endTurnPing = "The stars are aligned."
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/eng/characters.json"
+{
+  "Seer": {
+    "title": "The Seer",
+    "titleObject": "The Seer",
+    "description": "A traveler guided by distant stars.",
+    "banter": {
+      "alive": {
+        "endTurnPing": "The stars are aligned."
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/eng/characters.json"
+{
+  "Seer.title": "The Seer",
+  "Seer.titleObject": "The Seer",
+  "Seer.description": "A traveler guided by distant stars.",
+  "Seer.banter.alive.endTurnPing": "The stars are aligned."
+}
+```
+
+</TabItem>
+</Tabs>
+
+## `relics`
+
+```json title="MyMod/localization/eng/relics.json"
+{
+  "MYMOD-POCKET_MIRROR.title": "Pocket Mirror",
+  "MYMOD-POCKET_MIRROR.description": "At the start of combat, draw {Cards} card.",
+  "MYMOD-POCKET_MIRROR.flavor": "It reflects a sky that is not there."
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/eng/relics.yaml"
+PocketMirror:
+  title: Pocket Mirror
+  description: At the start of combat, draw {Cards} card.
+  flavor: It reflects a sky that is not there.
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/eng/relics.toml"
+[PocketMirror]
+title = "Pocket Mirror"
+description = "At the start of combat, draw {Cards} card."
+flavor = "It reflects a sky that is not there."
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/eng/relics.json"
+{
+  "PocketMirror": {
+    "title": "Pocket Mirror",
+    "description": "At the start of combat, draw {Cards} card.",
+    "flavor": "It reflects a sky that is not there."
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/eng/relics.json"
+{
+  "PocketMirror.title": "Pocket Mirror",
+  "PocketMirror.description": "At the start of combat, draw {Cards} card.",
+  "PocketMirror.flavor": "It reflects a sky that is not there."
+}
+```
+
+</TabItem>
+</Tabs>
+
+## `ancients`
+
+This table demonstrates both combinations requested by the game:
+
+- Original ancient `DARV` with custom character `Seer`: `DARV` is preserved, while `Seer` receives the BaseLib namespace.
+- Custom ancient `Mirror` with custom character `Seer`: both IDs receive the namespace.
+
+```json title="MyMod/localization/eng/ancients.json"
+{
+  "DARV.talk.MYMOD-SEER.0-0.ancient": "A new face in my collection!",
+  "DARV.talk.MYMOD-SEER.0-0.next": "Reply",
+  "DARV.talk.MYMOD-SEER.0-1.char": "I am only passing through.",
+  "MYMOD-MIRROR.title": "Mirror",
+  "MYMOD-MIRROR.epithet": "The Reflection",
+  "MYMOD-MIRROR.talk.MYMOD-SEER.0-0.ancient": "I have seen your path already.",
+  "MYMOD-MIRROR.talk.MYMOD-SEER.0-0.next": "Reply",
+  "MYMOD-MIRROR.talk.MYMOD-SEER.0-1.char": "Then show me where it ends."
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/eng/ancients.yaml"
+DARV:
+  talk:
+    Seer:
+      0-0:
+        ancient: A new face in my collection!
+        next: Reply
+      0-1:
+        char: I am only passing through.
+Mirror:
+  title: Mirror
+  epithet: The Reflection
+  talk:
+    Seer:
+      0-0:
+        ancient: I have seen your path already.
+        next: Reply
+      0-1:
+        char: Then show me where it ends.
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/eng/ancients.toml"
+[DARV.talk.Seer."0-0"]
+ancient = "A new face in my collection!"
+next = "Reply"
+
+[DARV.talk.Seer."0-1"]
+char = "I am only passing through."
+
+[Mirror]
+title = "Mirror"
+epithet = "The Reflection"
+
+[Mirror.talk.Seer."0-0"]
+ancient = "I have seen your path already."
+next = "Reply"
+
+[Mirror.talk.Seer."0-1"]
+char = "Then show me where it ends."
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/eng/ancients.json"
+{
+  "DARV": {
+    "talk": {
+      "Seer": {
+        "0-0": {
+          "ancient": "A new face in my collection!",
+          "next": "Reply"
+        },
+        "0-1": {
+          "char": "I am only passing through."
+        }
+      }
+    }
+  },
+  "Mirror": {
+    "title": "Mirror",
+    "epithet": "The Reflection",
+    "talk": {
+      "Seer": {
+        "0-0": {
+          "ancient": "I have seen your path already.",
+          "next": "Reply"
+        },
+        "0-1": {
+          "char": "Then show me where it ends."
+        }
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/eng/ancients.json"
+{
+  "DARV.talk.Seer.0-0.ancient": "A new face in my collection!",
+  "DARV.talk.Seer.0-0.next": "Reply",
+  "DARV.talk.Seer.0-1.char": "I am only passing through.",
+  "Mirror.title": "Mirror",
+  "Mirror.epithet": "The Reflection",
+  "Mirror.talk.Seer.0-0.ancient": "I have seen your path already.",
+  "Mirror.talk.Seer.0-0.next": "Reply",
+  "Mirror.talk.Seer.0-1.char": "Then show me where it ends."
+}
+```
+
+</TabItem>
+</Tabs>
+
+The relevant command is:
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization
+```

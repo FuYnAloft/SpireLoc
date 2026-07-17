@@ -1,0 +1,35 @@
+---
+title: Compatibility Operations
+description: 在源码与游戏布局之间转换 MinionLib component 本地化。
+---
+
+Compatibility operation 会同时完成外部库特有的表移动与 ID 调整，默认使用 `--from main --to main`。
+
+## `minionlib-component to-game`
+
+```text
+--compat minionlib-component to-game <namespace-top> [--from <slot>] [--to <slot>]
+```
+
+对于每种语言，该 operation 会：
+
+1. 读取源码专用的 `components` 表。
+2. 添加 MinionLib namespace key 段。
+3. 把转换后的条目追加到 `cards`。
+4. 移除 `components` 表。
+
+已有 `cards` 条目保持在前；没有 `cards` 表时会自动创建。
+
+## `minionlib-component to-source`
+
+```text
+--compat minionlib-component to-source <namespace-top> [--from <slot>] [--to <slot>]
+```
+
+该 operation 会识别第一段 key 中至少包含一个小写字符的条目，验证并移除 namespace 段，再写入 `components`。普通 card 条目保持原位。namespace 拼写本身应包含小写字符，反向 operation 才能识别生成的条目。
+
+`namespace-top` 必填、不能为空，而且必须是单个 key 段，不能是点号分隔的路径。namespace 不匹配会通过 diagnostic 报告。
+
+常规完整流程可以直接使用内置 RitsuLib 或 BaseLib action 的 `--minionlib-components` flag；`--minionlib-namespace-top` 可以覆盖 action 默认 namespace。
+
+这些命令不属于纯 reshape，因为它们既移动条目，也会添加或移除 component ID namespace。

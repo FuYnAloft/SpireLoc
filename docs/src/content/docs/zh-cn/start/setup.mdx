@@ -1,0 +1,101 @@
+---
+title: 环境配置
+description: 全局或按项目安装 SpireLoc，并通过 MSBuild 自动生成本地化。
+---
+
+import { Aside, CardGrid, LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
+
+SpireLoc 是 .NET 9 工具。请先安装 [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)，再选择全局安装或项目级安装。
+
+## 安装 SpireLoc
+
+<Tabs syncKey="install-scope">
+  <TabItem label="项目级工具（推荐）">
+    tool manifest 会把工具固定在仓库中，更适合协作开发与 CI。
+
+    ```powershell
+    dotnet new tool-manifest
+    dotnet tool install SpireLoc --prerelease
+    dotnet tool restore
+    dotnet tool run spireloc -- --version
+    ```
+
+    请提交 `.config/dotnet-tools.json`。重新克隆仓库后，只需先执行一次 `dotnet tool restore`。
+  </TabItem>
+  <TabItem label="全局工具">
+    ```powershell
+    dotnet tool install --global SpireLoc --prerelease
+    spireloc --version
+    ```
+
+    更新或卸载：
+
+    ```powershell
+    dotnet tool update --global SpireLoc --prerelease
+    dotnet tool uninstall --global SpireLoc
+    ```
+  </TabItem>
+</Tabs>
+
+<Aside type="note" title="预览版包">
+  SpireLoc 目前以 prerelease 形式发布，因此安装和更新都需要 `--prerelease`。
+</Aside>
+
+## 开始使用
+
+<CardGrid>
+  <LinkCard title="使用 RitsuLib" href="../ritsulib/" description="使用带类别的 ID 与独立 ModelCapability 源码表。" />
+  <LinkCard title="使用 BaseLib" href="../baselib/" description="建立源码目录，并运行内置 BaseLib action。" />
+</CardGrid>
+
+## 自动化配置
+
+以下示例假设使用项目级工具，人类编写的文件位于 `Tools/localization`，生成的文件位于 `<项目名>/localization`。
+
+先在模组项目的 `.csproj` 中加入共用路径：
+
+```xml
+<PropertyGroup>
+  <SpireLocCommand>dotnet tool run spireloc --</SpireLocCommand>
+  <LocalizationSource>$(MSBuildProjectDirectory)/Tools/localization</LocalizationSource>
+  <LocalizationOutput>$(MSBuildProjectDirectory)/$(MSBuildProjectName)/localization</LocalizationOutput>
+</PropertyGroup>
+```
+
+如果使用全局安装，把它改为 `<SpireLocCommand>spireloc</SpireLocCommand>`。
+
+### 每次构建前转换
+
+当编译、分析器或构建后部署都需要最新 JSON 时，可以挂到 `BeforeBuild`：
+
+```xml title="RitsuLib 项目"
+<Target Name="GenerateLocalizationForBuild"
+        BeforeTargets="BeforeBuild"
+        Condition="'$(DesignTimeBuild)' != 'true'">
+  <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+        Command="$(SpireLocCommand) ritsulib MyMod &quot;$(LocalizationSource)&quot; &quot;$(LocalizationOutput)&quot;" />
+</Target>
+```
+
+BaseLib 项目把 `ritsulib MyMod` 换成 `baselib MyMod` 即可。
+
+### 打包前转换
+
+一些 Godot 模组项目会定义 `GodotPublish`：它在 `dotnet publish` 后导入资源，再调用 `godot --export-pack`。把转换挂到它前面，确保 Godot 读取项目之前 JSON 已经生成：
+
+```xml title="带 GodotPublish target 的 RitsuLib 项目"
+<Target Name="GenerateLocalizationForPackage"
+        BeforeTargets="GodotPublish"
+        Condition="'$(DesignTimeBuild)' != 'true'">
+  <Exec WorkingDirectory="$(MSBuildProjectDirectory)"
+        Command="$(SpireLocCommand) ritsulib MyMod &quot;$(LocalizationSource)&quot; &quot;$(LocalizationOutput)&quot;" />
+</Target>
+```
+
+`GodotPublish` 是项目自定义名称，并非 Godot SDK 的通用钩子。请将它替换成你的项目中紧邻资源导入或 PCK 导出的 target。
+
+<Aside type="caution" title="选择真正拥有生成文件的阶段">
+  `dotnet publish` 通常会包含一次 build。两个示例同时启用时，转换可能执行两次。本地构建需要 JSON 就选构建前；只有发布包需要 JSON 就选打包前。
+</Aside>
+
+不要把 `dotnet tool restore` 隐藏在每次构建里。开发者配置与 CI 中显式恢复一次，然后让构建过程避免意外联网。

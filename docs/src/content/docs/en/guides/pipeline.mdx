@@ -1,0 +1,90 @@
+---
+title: Build a Pipeline
+description: Compose localization operations with pipe, workspace slots, partitioning, and merging.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+`spireloc pipe` constructs a program from operation flags and executes them strictly from left to right. It does not infer a source, destination, or direction for you.
+
+```powershell
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --model-id ritsulib MyMod `
+  --reshape ritsulib-model-capability merge `
+  --output flat-json ./MyMod/localization
+```
+
+Each `--<head>` starts a new operation. Tokens after it belong to that operation until the next registered head appears. Inspect the available surface with:
+
+```powershell
+spireloc operation list
+spireloc operation help model-id ritsulib
+spireloc operation help input
+```
+
+## Think in workspace slots
+
+Operations exchange immutable artifacts through named workspace slots. Localization operations use the slot `main` by default. A destination slot can be overwritten, like opening a file in `w` mode.
+
+```powershell
+spireloc pipe `
+  --input yaml ./common --to common `
+  --input yaml ./mod --to mod `
+  --merge common mod --to main `
+  --output flat-json ./generated
+```
+
+Later bundles overlay earlier ones. For the same language, table, and structured key, the later value wins; unrelated entries remain.
+
+Unary processors such as `--model-id`, `--compat`, and `--reshape` automatically accept `--from` and `--to`, both defaulting to `main`:
+
+```powershell
+--model-id baselib MyMod --from source --to converted
+```
+
+## Direction is operation order
+
+A reversed Model ID transform must happen in the reverse position as well. For RitsuLib ModelCapability entries, split while game prefixes are still present, then restore source IDs:
+
+```powershell
+spireloc pipe `
+  --input flat-json ./MyMod/localization `
+  --reshape ritsulib-model-capability split MyMod `
+  --model-id ritsulib MyMod --reversed `
+  --output yaml ./Tools/localization
+```
+
+The `--reversed` flag belongs only to the immediately preceding `--model-id ritsulib` operation.
+
+## Partition and recombine
+
+Partition a bundle by table, language, or entry-path regex. Conditions within one partition operation are ORed.
+
+```powershell
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --partition table cards relics `
+  --output yaml ./selected --from matched `
+  --output yaml ./remaining --from unmatched
+```
+
+Regex partitioning matches `language/table/key.segment.path`:
+
+```powershell
+spireloc pipe `
+  --input yaml ./Tools/localization `
+  --partition regex '^zhs/cards/' 'title$'
+```
+
+Use `--merge matched unmatched --to main` when later operations should consume the two bundles again.
+
+## Diagnostics and partial progress
+
+The runner executes every declared operation even when an earlier operation reports an error. This lets a directory reader preserve valid files when a neighboring file is malformed, but it also means each writer validates its own input. The CLI prints diagnostics and exits with code `1` if any error was collected; command-line/schema errors exit with code `2`.
+
+<Aside type="tip" title="Package repeated pipelines">
+  Once a pipeline is stable, move it into an [action](../actions/writing-actions/) and expose only the values that differ between projects or directions.
+</Aside>
+
+Every command and parameter is listed in the [Operations reference](../../reference/operations/input/).

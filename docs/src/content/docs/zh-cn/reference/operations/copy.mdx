@@ -1,0 +1,19 @@
+---
+title: Copy Operation
+description: 在 workspace 槽之间复制不可变 artifact 引用。
+---
+
+```text
+--copy <from> <to>
+```
+
+两个槽名都必填，也可以分别写成 `--from` 与 `--to`。
+
+```powershell
+spireloc pipe `
+  --input yaml ./source `
+  --copy main backup `
+  --model-id ritsulib MyMod
+```
+
+该 operation 可以复制任意不可变 artifact 引用，不限于 `LocBundle`；它不会克隆或转换 artifact。目标槽允许覆盖，来源槽缺失时报告 error。

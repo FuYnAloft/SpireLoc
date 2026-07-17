@@ -1,0 +1,152 @@
+---
+title: Use with RitsuLib
+description: Adopt SpireLoc in an existing or new RitsuLib mod project.
+---
+
+import { Aside, FileTree, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="note" title="Before you begin">
+  [Install SpireLoc](../setup/#install-spireloc) globally or as a project tool first. Commands below use the shorter global-tool spelling; prepend `dotnet tool run spireloc --` when using a project tool.
+</Aside>
+
+## Create the directory layout
+
+Place an empty `.gdignore` in the localization source directory. This keeps Godot from importing that source tree and helps prevent it from being included in the exported PCK by accident.
+
+<Tabs syncKey="project-state">
+<TabItem label="Existing project">
+
+Most mods already have game-ready JSON under the mod's `localization` directory. Keep those files, create a source directory, and let the reversed action migrate them.
+
+<FileTree>
+- MyMod/
+  - localization/ <span>existing game files</span>
+    - eng/
+      - cards.json
+      - ancients.json
+      - characters.json
+      - relics.json
+- Tools/
+  - localization/ <span>created by SpireLoc</span>
+    - .gdignore <span>add manually</span>
+</FileTree>
+
+Start from a clean Git state or make a backup, then run once:
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization --reversed
+```
+
+SpireLoc reads the existing flat JSON and writes nested YAML source files. It also extracts this mod's RitsuLib ModelCapability entries from `cards` into `model_capabilities.yaml` and historical `modelcapabilities.yaml`. Review the generated diff, then treat `Tools/localization` as the editable source from now on.
+
+</TabItem>
+<TabItem label="New project">
+
+Create one directory per game language. File names are localization table names. The game output directory may be absent until the first forward conversion.
+
+<FileTree>
+- Tools/
+  - localization/ <span>human-authored source</span>
+    - .gdignore
+    - eng/
+      - cards.yaml
+      - ancients.yaml
+      - characters.yaml
+      - relics.yaml
+      - model_capabilities.yaml <span>`MODEL_CAPABILITY` spelling</span>
+      - modelcapabilities.yaml <span>historical `MODELCAPABILITY` spelling</span>
+    - zhs/
+      - cards.yaml
+- MyMod/
+  - localization/ <span>generated game files</span>
+</FileTree>
+
+Only create the tables your mod uses. SpireLoc creates language directories and output files during forward conversion.
+
+</TabItem>
+</Tabs>
+
+<Steps>
+1. **Choose the RitsuLib Mod ID**
+
+   Pass the same Mod ID used by your RitsuLib registrations. `MyMod` is normalized to `MY_MOD`; each localization table supplies its model category.
+
+2. **Write or review the source localization**
+
+   Every nested mapping path becomes a structured localization key. Leaves must be strings.
+
+   ```yaml title="Tools/localization/eng/cards.yaml"
+   ArcaneBolt:
+     title: Arcane Bolt
+     description: Deal 8 damage.
+   ```
+
+   The card ID becomes `MY_MOD_CARD_ARCANE_BOLT` in game output.
+
+3. **Generate game JSON**
+
+   ```powershell
+   spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization
+   ```
+
+   The action reads YAML, applies RitsuLib's table-specific Model ID categories, merges both ModelCapability source tables into `cards`, and writes flat JSON.
+
+4. **Reverse again only when game files are the newer copy**
+
+   ```powershell
+   spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization --reversed
+   ```
+
+   Reversed mode overwrites matching source files, so commit or back up source edits first.
+</Steps>
+
+## Original-game IDs are not processed twice
+
+Source segments matching ASCII `[A-Z_-]+` are preserved. An ancient dialogue can safely refer to original `DARV` while using a mod character:
+
+```yaml title="Tools/localization/eng/ancients.yaml"
+DARV:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: A line from Darv.
+        next: Reply
+      0-1:
+        char: A response.
+```
+
+The generated keys begin with:
+
+```text
+DARV.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-0.ancient
+DARV.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-1.char
+```
+
+`DARV` remains untouched; only the source-style character ID receives RitsuLib's character category prefix. See the full [RitsuLib game/source comparison](../../reference/syntax/ritsulib/) for custom ancients and four equivalent source formats.
+
+## ModelCapability spellings
+
+RitsuLib historically has two category spellings. SpireLoc supports both as separate source tables:
+
+| Source table | Generated prefix | Game table |
+| --- | --- | --- |
+| `model_capabilities` | `MY_MOD_MODEL_CAPABILITY_...` | `cards` |
+| `modelcapabilities` | `MY_MOD_MODELCAPABILITY_...` | `cards` |
+
+Use `--disable-model-capabilities` only when the project manages these entries itself and they should remain in `cards` on both sides.
+
+RitsuLib's `static_hover_tips` is intentionally skipped by Model ID processing because the table mixes Model IDs with unrelated key categories. Keep those key segments in their game-ready spelling or process a known subset with [`--model-id prefix`](../../reference/operations/model-id/#model-id-prefix).
+
+## Other options
+
+Select other directory formats with `--source-format` and `--game-format`. MinionLib component compatibility is also available:
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization `
+  --minionlib-components `
+  --minionlib-namespace-top MyComponentNamespace
+```
+
+See the [Model ID](../../reference/operations/model-id/) and [Reshape](../../reference/operations/reshape/) references for the underlying operations.
+
+Next, [automate the conversion during builds or before packaging](../setup/#automate-conversion).

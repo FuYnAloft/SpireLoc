@@ -1,0 +1,75 @@
+---
+title: 使用 Action
+description: 直接运行内置或文件 action，或把它嵌入更大的 pipeline。
+---
+
+Action 是参数化的 YAML 或 JSON pipeline。它会在执行前展开为普通 operation，因此既可以独立运行完整流程，也可以插入其他 pipeline。
+
+## 查看内置 action
+
+Release 构建包含 `ritsulib` 与 `baselib`：
+
+```powershell
+spireloc action list
+spireloc action help ritsulib
+spireloc action help baselib
+```
+
+可以通过 `action run` 或快捷命令运行：
+
+```powershell
+spireloc action run ritsulib MyMod ./source ./game
+spireloc ritsulib MyMod ./source ./game
+
+spireloc baselib MyMod ./source ./game --reversed
+```
+
+内置名称区分大小写且必须精确匹配；其他引用都会被当作文件路径。
+
+## 运行 action 文件
+
+顶层 action 文件路径相对于当前工作目录解析：
+
+```powershell
+spireloc action run ./actions/convert.yaml MyMod
+spireloc action run C:\mods\shared\convert.json MyMod
+```
+
+YAML 与 JSON 使用同一套 schema。loader 可以直接读取 JSON 语法，扩展名不会改变语义。
+
+只查看文件 action 的参数而不执行：
+
+```powershell
+spireloc action help ./actions/convert.yaml
+```
+
+## 在 pipe 中插入 action
+
+`--action` 会在它所在的位置原地展开：
+
+```powershell
+spireloc pipe `
+  --input yaml ./common --to common `
+  --action ./actions/read-mod.yaml MyMod `
+  --merge common main `
+  --output flat-json ./generated
+```
+
+Action 参数会一直读取到下一个已注册的 operation 主命令。位置参数本身以 `--` 开头时，需要留意这个边界。
+
+## 传入 action 参数
+
+Action 可以暴露位置参数、具名参数与布尔 flag：
+
+```powershell
+spireloc action run ./convert.yaml MyMod `
+  --source-format toml `
+  --reversed
+```
+
+- 位置参数按声明的 position 依次读取。
+- 具名参数使用 `--name value`。
+- 布尔 flag 只写 `--name`，表示 `true`。
+- 有默认值的可选参数可以省略。
+
+接下来学习[编写 Action](../writing-actions/)，或查阅[完整 action 语法](../../../reference/action-syntax/)。

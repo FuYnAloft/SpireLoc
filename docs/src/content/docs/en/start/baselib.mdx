@@ -1,0 +1,143 @@
+---
+title: Use with BaseLib
+description: Adopt SpireLoc in an existing or new BaseLib mod project.
+---
+
+import { Aside, FileTree, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="note" title="Before you begin">
+  [Install SpireLoc](../setup/#install-spireloc) globally or as a project tool first. Commands below use the shorter global-tool spelling; prepend `dotnet tool run spireloc --` when using a project tool.
+</Aside>
+
+## Create the directory layout
+
+Place an empty `.gdignore` in the localization source directory. This keeps Godot from importing that source tree and helps prevent it from being included in the exported PCK by accident.
+
+<Tabs syncKey="project-state">
+<TabItem label="Existing project">
+
+Keep the game-ready JSON already stored under the mod's `localization` directory. Create a source directory and use the reversed action for the initial migration.
+
+<FileTree>
+- MyMod/
+  - localization/ <span>existing game files</span>
+    - eng/
+      - cards.json
+      - ancients.json
+      - characters.json
+      - relics.json
+- Tools/
+  - localization/ <span>created by SpireLoc</span>
+    - .gdignore <span>add manually</span>
+</FileTree>
+
+Start from a clean Git state or make a backup, then run once:
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization --reversed
+```
+
+SpireLoc reads the existing flat JSON and writes nested YAML source files. Review the generated diff, then treat `Tools/localization` as the editable source from now on.
+
+</TabItem>
+<TabItem label="New project">
+
+Create one directory per game language. File names are localization table names. The output directory may be absent until the first forward conversion.
+
+<FileTree>
+- Tools/
+  - localization/ <span>human-authored source</span>
+    - .gdignore
+    - eng/
+      - cards.yaml
+      - ancients.yaml
+      - characters.yaml
+      - relics.yaml
+    - zhs/
+      - cards.yaml
+- MyMod/
+  - localization/ <span>generated game files</span>
+</FileTree>
+
+Only create the tables your mod uses. SpireLoc creates language directories and output files during forward conversion.
+
+</TabItem>
+</Tabs>
+
+<Steps>
+1. **Choose the BaseLib namespace**
+
+   Use the same top-level namespace that your mod uses to create BaseLib IDs. The examples use `MyMod`, which produces the game prefix `MYMOD-`.
+
+2. **Write or review the source localization**
+
+   Every nested mapping path becomes a structured localization key. Leaves must be strings.
+
+   ```yaml title="Tools/localization/eng/cards.yaml"
+   ArcaneBolt:
+     title: Arcane Bolt
+     description: Deal 8 damage.
+   ```
+
+3. **Generate game JSON**
+
+   ```powershell
+   spireloc baselib MyMod ./Tools/localization ./MyMod/localization
+   ```
+
+   The action reads YAML, converts BaseLib Model IDs, and writes flat JSON. `ArcaneBolt` becomes `MYMOD-ARCANE_BOLT`.
+
+4. **Reverse again only when game files are the newer copy**
+
+   ```powershell
+   spireloc baselib MyMod ./Tools/localization ./MyMod/localization --reversed
+   ```
+
+   Reversed mode overwrites matching source files, so commit or back up source edits first.
+</Steps>
+
+## IDs that are already game-shaped
+
+SpireLoc preserves a source key segment matching ASCII `[A-Z_-]+` instead of processing it twice. This matters when original and mod IDs share `ancients`:
+
+```yaml title="Tools/localization/eng/ancients.yaml"
+DARV:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: A line from Darv.
+        next: Reply
+      0-1:
+        char: A response.
+```
+
+The generated keys begin with:
+
+```text
+DARV.talk.MYMOD-MY_CHARACTER.0-0.ancient
+DARV.talk.MYMOD-MY_CHARACTER.0-1.char
+```
+
+Under `talk`, segment 0 is the ancient ID and segment 2 is the character ID. `ANY` and `firstVisitEver` are preserved; non-dialogue branches such as `pages` do not treat segment 2 as a character. See the full [BaseLib game/source comparison](../../reference/syntax/baselib/) for a custom ancient and four equivalent source formats.
+
+## Source formats and optional MinionLib support
+
+YAML is the default source format and flat JSON is the default game format. Other registered directory formats can be selected explicitly:
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization `
+  --source-format toml --game-format flat-json
+```
+
+If the mod uses MinionLib component localization, keep those entries in source-side `components.yaml` and enable compatibility conversion:
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization `
+  --minionlib-components
+```
+
+By default the component namespace is `MyMod`. Pass `--minionlib-namespace-top OtherNamespace` when it differs. Forward conversion moves component entries into the game's `cards` table and adds the component namespace; reversed conversion splits them back out.
+
+See the [Model ID reference](../../reference/operations/model-id/) for all processed tables and [Compatibility](../../reference/operations/compat/) for the exact MinionLib behavior.
+
+Next, [automate the conversion during builds or before packaging](../setup/#automate-conversion).

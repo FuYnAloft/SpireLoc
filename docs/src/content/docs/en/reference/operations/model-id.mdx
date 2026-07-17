@@ -1,0 +1,71 @@
+---
+title: Model ID Operations
+description: Convert vanilla, RitsuLib, BaseLib, or custom-prefix Model ID key segments.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Model ID processors change selected structured key segments and preserve entry values and all other segments. They read `--from main` and write `--to main` by default; destination slots may be overwritten. Add `--reversed` to convert game IDs back to source form.
+
+## `model-id vanilla`
+
+```text
+--model-id vanilla [--reversed] [--from <slot>] [--to <slot>]
+```
+
+Uses the base game's slug convention without a prefix.
+
+## `model-id ritsulib`
+
+```text
+--model-id ritsulib <mod-id> [--reversed] [--from <slot>] [--to <slot>]
+```
+
+Normalizes the Mod ID and adds a category determined by the table. `MyMod` + `cards` turns `ArcaneBolt` into `MY_MOD_CARD_ARCANE_BOLT`.
+
+RitsuLib also recognizes `model_capabilities` as `MODEL_CAPABILITY` and historical `modelcapabilities` as `MODELCAPABILITY`. It intentionally skips `static_hover_tips` because that table mixes unrelated key categories.
+
+## `model-id baselib`
+
+```text
+--model-id baselib <namespace-top> [--reversed] [--from <slot>] [--to <slot>]
+```
+
+Uppercases `namespace-top` and adds `-`. With `MyMod`, `ArcaneBolt` becomes `MYMOD-ARCANE_BOLT`.
+
+## `model-id prefix`
+
+```text
+--model-id prefix <prefix> <table>... [--reversed] [--from <slot>] [--to <slot>]
+```
+
+Each table specification is `table` or `table:keyIndex`; the default index is `0`.
+
+```powershell
+spireloc pipe `
+  --input yaml ./source `
+  --model-id prefix TEST_ cards ancients:2 `
+  --output flat-json ./game
+```
+
+Duplicate table/index rules, negative indexes, and invalid specifications are rejected.
+
+## Standard table routing
+
+RitsuLib processes the standard model tables except `static_hover_tips`, plus its two ModelCapability source tables. Each table receives the category matching its model type.
+
+Vanilla and BaseLib process these table names at key index 0:
+
+`achievements`, `acts`, `afflictions`, `card_keywords`, `cards`, `characters`, `enchantments`, `encounters`, `events`, `modifiers`, `monsters`, `orbs`, `potions`, `powers`, `relics`, `static_hover_tips`.
+
+## Special routes and preservation
+
+- `ancients`: segment 0 is the ancient ID. Only under `talk`, segment 2 is a character ID. `ANY` and `firstVisitEver` are selectors and remain unchanged. Other branches such as `pages` do not treat segment 2 as a character.
+- `SEA_GLASS`: in standard model tables, segment 1 is also treated as a character ID.
+- A source segment matching ASCII `[A-Z_-]+` is treated as already game-shaped and preserved. For example, original ancient ID `DARV` is never prefixed again.
+- On reversed conversion, an unexpected prefix is preserved. An all-uppercase preserved ID is silent; other unexpected IDs produce a warning.
+- An out-of-range key index reports an error while other entries and valid rules continue.
+
+<Aside type="note">
+  Model ID transforms never join or split keys on dots. Flat JSON conversion is solely the input/output operation's responsibility.
+</Aside>

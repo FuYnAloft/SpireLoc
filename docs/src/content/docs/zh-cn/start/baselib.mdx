@@ -1,0 +1,148 @@
+---
+title: 使用 BaseLib
+description: 在已有或新建的 BaseLib 模组项目中接入 SpireLoc。
+---
+
+import { Aside, FileTree, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="note" title="开始之前">
+  请先[安装 SpireLoc](../setup/#安装-spireloc)。下面使用全局工具的简短写法；项目级工具需要把命令开头替换为 `dotnet tool run spireloc --`。
+</Aside>
+
+## 建立目录布局
+
+建议在本地化源码目录中放置一个空的 `.gdignore`。这样 Godot 会忽略整棵源码目录，也能避免这些文件被意外打包进导出的 PCK。
+
+<Tabs syncKey="project-state">
+<TabItem label="已有项目">
+
+保留模组 `localization` 目录中已有的游戏 JSON，新建源码目录，再用反向 action 完成第一次迁移。
+
+<FileTree>
+- MyMod/
+  - localization/ <span>已有游戏文件</span>
+    - eng/
+      - cards.json
+      - ancients.json
+      - characters.json
+      - relics.json
+    - zhs/
+      - cards.json
+      - ancients.json
+      - characters.json
+      - relics.json
+- Tools/
+  - localization/ <span>由 SpireLoc 创建</span>
+    - .gdignore <span>需手动添加</span>
+</FileTree>
+
+先确保 Git 工作区干净或做好备份，再执行一次：
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization --reversed
+```
+
+SpireLoc 会读取已有 flat JSON，并写出嵌套 YAML 源码。检查生成的 diff，之后只编辑 `Tools/localization` 下的源码。
+
+</TabItem>
+<TabItem label="新项目">
+
+按游戏语言建立一级目录，文件名就是本地化表名。第一次正向转换前，输出目录可以不存在。
+
+<FileTree>
+- Tools/
+  - localization/ <span>人类编写的源码</span>
+    - .gdignore
+    - eng/
+      - cards.yaml
+      - ancients.yaml
+      - characters.yaml
+      - relics.yaml
+    - zhs/
+      - cards.yaml
+- MyMod/
+  - localization/ <span>生成的游戏文件</span>
+</FileTree>
+
+只需创建模组实际使用的表。正向转换时，SpireLoc 会创建语言目录与输出文件。
+
+</TabItem>
+</Tabs>
+
+<Steps>
+1. **确定 BaseLib 顶层命名空间**
+
+   使用模组创建 BaseLib ID 时的同一个顶层命名空间。以下示例使用 `MyMod`，游戏 ID 前缀会是 `MYMOD-`。
+
+2. **编写或检查本地化源码**
+
+   每条嵌套 mapping 路径都会成为结构化本地化 key，叶子必须是字符串。
+
+   ```yaml title="Tools/localization/zhs/cards.yaml"
+   ArcaneBolt:
+     title: 奥术箭
+     description: 造成 8 点伤害。
+   ```
+
+3. **生成游戏 JSON**
+
+   ```powershell
+   spireloc baselib MyMod ./Tools/localization ./MyMod/localization
+   ```
+
+   Action 会读取 YAML、转换 BaseLib Model ID，再写出 flat JSON。`ArcaneBolt` 会变为 `MYMOD-ARCANE_BOLT`。
+
+4. **只有游戏文件更新时才再次反向转换**
+
+   ```powershell
+   spireloc baselib MyMod ./Tools/localization ./MyMod/localization --reversed
+   ```
+
+   反向模式会覆盖匹配的源码文件，因此请先提交或备份源码修改。
+</Steps>
+
+## 看起来已经处理过的 ID
+
+如果源码中的某个 key 段符合 ASCII `[A-Z_-]+`，SpireLoc 会直接保留，避免重复处理。这一点在原版与模组 ID 共存的 `ancients` 中尤其重要：
+
+```yaml title="Tools/localization/zhs/ancients.yaml"
+DARV:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: 达尔夫的一句台词。
+        next: 回应
+      0-1:
+        char: 一句回答。
+```
+
+生成键的开头是：
+
+```text
+DARV.talk.MYMOD-MY_CHARACTER.0-0.ancient
+DARV.talk.MYMOD-MY_CHARACTER.0-1.char
+```
+
+在 `talk` 分支中，第 0 段是 ancient ID，第 2 段是 character ID。`ANY` 与 `firstVisitEver` 选择器不会处理；`pages` 等非对话分支也不会把第 2 段误认为角色。自定义 ancient 与四种等价源码格式见完整的 [BaseLib 游戏/源码写法对照](../../reference/syntax/baselib/)。
+
+## 源码格式与可选 MinionLib 支持
+
+默认源码格式是 YAML，默认游戏格式是 flat JSON，也可以显式选择其他已注册目录格式：
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization `
+  --source-format toml --game-format flat-json
+```
+
+如果模组使用 MinionLib component 本地化，请把源码条目放在 `components.yaml`，并启用兼容转换：
+
+```powershell
+spireloc baselib MyMod ./Tools/localization ./MyMod/localization `
+  --minionlib-components
+```
+
+component 命名空间默认使用 `MyMod`；不同的话传入 `--minionlib-namespace-top OtherNamespace`。正向转换会把 component 条目移入游戏的 `cards` 表并添加命名空间，反向转换则会再次拆出。
+
+完整处理表见 [Model ID 参考](../../reference/operations/model-id/)，MinionLib 的精确行为见 [Compatibility](../../reference/operations/compat/)。
+
+最后，把转换[接入构建或打包流程](../setup/#自动化配置)。

@@ -1,0 +1,34 @@
+---
+title: Output Operations
+description: Write a localization bundle as directory-based YAML, TOML, nested JSON, or flat JSON.
+---
+
+```text
+--output yaml <path> [--from <slot>]
+--output toml <path> [--from <slot>]
+--output nested-json <path> [--from <slot>]
+--output flat-json <path> [--from <slot>]
+```
+
+`path` is required. `from` defaults to `main` and must contain a `LocBundle`. Writers do not change the workspace.
+
+| Kind | Result |
+| --- | --- |
+| `yaml` | Nested `.yaml` mappings; multiline values and special leading characters use literal scalars. |
+| `toml` | Nested `.toml` tables with string values. |
+| `nested-json` | Indented nested `.json` objects with relaxed escaping. |
+| `flat-json` | Indented `.json`; key segments are joined with `.` into top-level properties. |
+
+Files are UTF-8 without a BOM. A writer overwrites matching target files, creates required directories, and leaves unrelated files in the target tree untouched. It does not clean stale tables.
+
+## Preflight validation
+
+Every target table is serialized before any file is written. If a nested key is both a string leaf and a parent path, or two entries collapse to the same flat key, the operation reports an error and does not start writing target files. Filesystem errors are reported as writer diagnostics.
+
+```yaml title="Invalid nested shape"
+Card: a string
+Card:
+  title: cannot also be nested
+```
+
+Use a fresh staging directory or an explicit cleanup step outside SpireLoc when packaging requires the destination to contain exactly the current bundle.

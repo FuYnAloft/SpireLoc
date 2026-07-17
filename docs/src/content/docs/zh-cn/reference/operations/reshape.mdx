@@ -1,0 +1,43 @@
+---
+title: Reshape Operations
+description: 在源码专用表与游戏 cards 表之间移动 RitsuLib ModelCapability 条目。
+---
+
+Reshape operation 只改变表的位置，不处理 ID。两个命令都默认使用 `--from main --to main`。
+
+## `ritsulib-model-capability merge`
+
+```text
+--reshape ritsulib-model-capability merge [--from <slot>] [--to <slot>]
+```
+
+对于每种语言，把 `model_capabilities` 与历史 `modelcapabilities` 的条目追加到 `cards`，然后移除两张源码表。已有 card 条目保持在前，capability 表保持 bundle 中的顺序。
+
+正向流程先处理 RitsuLib Model ID，再 merge：
+
+```powershell
+--model-id ritsulib MyMod `
+--reshape ritsulib-model-capability merge
+```
+
+## `ritsulib-model-capability split`
+
+```text
+--reshape ritsulib-model-capability split [<mod-id>] [--from <slot>] [--to <slot>]
+```
+
+Split 会从 `cards` 中提取匹配条目：
+
+- `_MODEL_CAPABILITY_` ID 进入 `model_capabilities`。
+- 历史 `_MODELCAPABILITY_` ID 进入 `modelcapabilities`。
+
+传入 `mod-id` 时会精确匹配单个模组的规范化前缀，这是稳定且不会误拆其他模组条目的形式。不传 Mod ID 时，SpireLoc 按两种类别子串启发式判断，并产生 warning。
+
+反向流程要趁游戏前缀仍存在时 split，然后还原 Model ID：
+
+```powershell
+--reshape ritsulib-model-capability split MyMod `
+--model-id ritsulib MyMod --reversed
+```
+
+两个 operation 都保留各目标内的条目顺序。只有实际提取到条目时才会创建目标表。

@@ -1,0 +1,329 @@
+---
+title: RitsuLib
+description: 对比游戏需要的 RitsuLib 本地化与四种等价的 SpireLoc 源码格式。
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+以下示例统一使用 RitsuLib Mod ID `MyMod`，它会规范化为 `MY_MOD`。游戏文件始终是 flat JSON，并使用带类别的完整 ID；SpireLoc 源码则使用简短 model 名，并可任选下面四种等价格式。
+
+所有源码标签会同步选择。在任意表中切换格式，其他表、英文页面与 BaseLib 对照页都会一起切换。
+
+内置 action 默认读取 YAML。选择其他标签时，分别传入 `--source-format toml`、`--source-format nested-json` 或 `--source-format flat-json`。
+
+<Aside type="note">
+  Flat JSON 也可以作为源码格式。里面仍然写 `ArcaneBolt` 一类源码 ID，之后由 `--model-id ritsulib MyMod` 添加游戏前缀。
+</Aside>
+
+## `cards`
+
+```json title="MyMod/localization/zhs/cards.json"
+{
+  "MY_MOD_CARD_ARCANE_BOLT.title": "奥术箭",
+  "MY_MOD_CARD_ARCANE_BOLT.description": "造成 {Damage} 点伤害。\n抽 1 张牌。"
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/zhs/cards.yaml"
+ArcaneBolt:
+  title: 奥术箭
+  description: |-
+    造成 {Damage} 点伤害。
+    抽 1 张牌。
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/zhs/cards.toml"
+[ArcaneBolt]
+title = "奥术箭"
+description = """
+造成 {Damage} 点伤害。
+抽 1 张牌。"""
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/zhs/cards.json"
+{
+  "ArcaneBolt": {
+    "title": "奥术箭",
+    "description": "造成 {Damage} 点伤害。\n抽 1 张牌。"
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/zhs/cards.json"
+{
+  "ArcaneBolt.title": "奥术箭",
+  "ArcaneBolt.description": "造成 {Damage} 点伤害。\n抽 1 张牌。"
+}
+```
+
+</TabItem>
+</Tabs>
+
+## `characters`
+
+`banter.alive.endTurnPing` 用来展示：只有 model ID 段发生变化，更深的 key 段仍保持结构。
+
+```json title="MyMod/localization/zhs/characters.json"
+{
+  "MY_MOD_CHARACTER_SEER.title": "先见者",
+  "MY_MOD_CHARACTER_SEER.titleObject": "先见者",
+  "MY_MOD_CHARACTER_SEER.description": "一位受遥远星辰指引的旅人。",
+  "MY_MOD_CHARACTER_SEER.banter.alive.endTurnPing": "群星已然归位。"
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/zhs/characters.yaml"
+Seer:
+  title: 先见者
+  titleObject: 先见者
+  description: 一位受遥远星辰指引的旅人。
+  banter:
+    alive:
+      endTurnPing: 群星已然归位。
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/zhs/characters.toml"
+[Seer]
+title = "先见者"
+titleObject = "先见者"
+description = "一位受遥远星辰指引的旅人。"
+
+[Seer.banter.alive]
+endTurnPing = "群星已然归位。"
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/zhs/characters.json"
+{
+  "Seer": {
+    "title": "先见者",
+    "titleObject": "先见者",
+    "description": "一位受遥远星辰指引的旅人。",
+    "banter": {
+      "alive": {
+        "endTurnPing": "群星已然归位。"
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/zhs/characters.json"
+{
+  "Seer.title": "先见者",
+  "Seer.titleObject": "先见者",
+  "Seer.description": "一位受遥远星辰指引的旅人。",
+  "Seer.banter.alive.endTurnPing": "群星已然归位。"
+}
+```
+
+</TabItem>
+</Tabs>
+
+## `relics`
+
+```json title="MyMod/localization/zhs/relics.json"
+{
+  "MY_MOD_RELIC_POCKET_MIRROR.title": "袖珍镜",
+  "MY_MOD_RELIC_POCKET_MIRROR.description": "战斗开始时，抽 {Cards} 张牌。",
+  "MY_MOD_RELIC_POCKET_MIRROR.flavor": "镜中映着一片并不存在的天空。"
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/zhs/relics.yaml"
+PocketMirror:
+  title: 袖珍镜
+  description: 战斗开始时，抽 {Cards} 张牌。
+  flavor: 镜中映着一片并不存在的天空。
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/zhs/relics.toml"
+[PocketMirror]
+title = "袖珍镜"
+description = "战斗开始时，抽 {Cards} 张牌。"
+flavor = "镜中映着一片并不存在的天空。"
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/zhs/relics.json"
+{
+  "PocketMirror": {
+    "title": "袖珍镜",
+    "description": "战斗开始时，抽 {Cards} 张牌。",
+    "flavor": "镜中映着一片并不存在的天空。"
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/zhs/relics.json"
+{
+  "PocketMirror.title": "袖珍镜",
+  "PocketMirror.description": "战斗开始时，抽 {Cards} 张牌。",
+  "PocketMirror.flavor": "镜中映着一片并不存在的天空。"
+}
+```
+
+</TabItem>
+</Tabs>
+
+## `ancients`
+
+这里同时展示游戏需要的两种组合：
+
+- 原版 ancient `DARV` + 自定义角色 `Seer`：`DARV` 保持原样，`Seer` 获得 character 类别。
+- 自定义 ancient `Mirror` + 自定义角色 `Seer`：两个 ID 分别获得 RitsuLib 类别。
+
+```json title="MyMod/localization/zhs/ancients.json"
+{
+  "DARV.talk.MY_MOD_CHARACTER_SEER.0-0.ancient": "我的收藏中又多了一张新面孔！",
+  "DARV.talk.MY_MOD_CHARACTER_SEER.0-0.next": "回应",
+  "DARV.talk.MY_MOD_CHARACTER_SEER.0-1.char": "我只是路过。",
+  "MY_MOD_ANCIENT_MIRROR.title": "镜",
+  "MY_MOD_ANCIENT_MIRROR.epithet": "映照者",
+  "MY_MOD_ANCIENT_MIRROR.talk.MY_MOD_CHARACTER_SEER.0-0.ancient": "我早已看见了你的道路。",
+  "MY_MOD_ANCIENT_MIRROR.talk.MY_MOD_CHARACTER_SEER.0-0.next": "回应",
+  "MY_MOD_ANCIENT_MIRROR.talk.MY_MOD_CHARACTER_SEER.0-1.char": "那就让我看看它通往何处。"
+}
+```
+
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
+
+```yaml title="Tools/localization/zhs/ancients.yaml"
+DARV:
+  talk:
+    Seer:
+      0-0:
+        ancient: 我的收藏中又多了一张新面孔！
+        next: 回应
+      0-1:
+        char: 我只是路过。
+Mirror:
+  title: 镜
+  epithet: 映照者
+  talk:
+    Seer:
+      0-0:
+        ancient: 我早已看见了你的道路。
+        next: 回应
+      0-1:
+        char: 那就让我看看它通往何处。
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml title="Tools/localization/zhs/ancients.toml"
+[DARV.talk.Seer."0-0"]
+ancient = "我的收藏中又多了一张新面孔！"
+next = "回应"
+
+[DARV.talk.Seer."0-1"]
+char = "我只是路过。"
+
+[Mirror]
+title = "镜"
+epithet = "映照者"
+
+[Mirror.talk.Seer."0-0"]
+ancient = "我早已看见了你的道路。"
+next = "回应"
+
+[Mirror.talk.Seer."0-1"]
+char = "那就让我看看它通往何处。"
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json title="Tools/localization/zhs/ancients.json"
+{
+  "DARV": {
+    "talk": {
+      "Seer": {
+        "0-0": {
+          "ancient": "我的收藏中又多了一张新面孔！",
+          "next": "回应"
+        },
+        "0-1": {
+          "char": "我只是路过。"
+        }
+      }
+    }
+  },
+  "Mirror": {
+    "title": "镜",
+    "epithet": "映照者",
+    "talk": {
+      "Seer": {
+        "0-0": {
+          "ancient": "我早已看见了你的道路。",
+          "next": "回应"
+        },
+        "0-1": {
+          "char": "那就让我看看它通往何处。"
+        }
+      }
+    }
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json title="Tools/localization/zhs/ancients.json"
+{
+  "DARV.talk.Seer.0-0.ancient": "我的收藏中又多了一张新面孔！",
+  "DARV.talk.Seer.0-0.next": "回应",
+  "DARV.talk.Seer.0-1.char": "我只是路过。",
+  "Mirror.title": "镜",
+  "Mirror.epithet": "映照者",
+  "Mirror.talk.Seer.0-0.ancient": "我早已看见了你的道路。",
+  "Mirror.talk.Seer.0-0.next": "回应",
+  "Mirror.talk.Seer.0-1.char": "那就让我看看它通往何处。"
+}
+```
+
+</TabItem>
+</Tabs>
+
+对应的完整转换命令是：
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization
+```

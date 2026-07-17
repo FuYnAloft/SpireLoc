@@ -1,0 +1,49 @@
+---
+title: Input Operations
+description: 从目录化 YAML、TOML、nested JSON 或 flat JSON 读取 workspace 槽。
+---
+
+import { Aside, FileTree } from '@astrojs/starlight/components';
+
+所有 input operation 都只扫描一级语言目录，以及其中一级符合扩展名的文件：
+
+<FileTree>
+- localization/
+  - eng/
+    - cards.yaml
+    - relics.yaml
+  - zhs/
+    - cards.yaml
+</FileTree>
+
+```text
+--input yaml <path> [--to <slot>]
+--input toml <path> [--to <slot>]
+--input nested-json <path> [--to <slot>]
+--input flat-json <path> [--to <slot>]
+```
+
+`path` 必填；`to` 默认是 `main`。
+
+| Kind | 扩展名 | 接受的结构 |
+| --- | --- | --- |
+| `yaml` | `.yaml` | 嵌套 mapping，叶子为字符串；不会扫描 `.yml`。 |
+| `toml` | `.toml` | 嵌套 table，叶子为字符串。 |
+| `nested-json` | `.json` | 嵌套 object，叶子为字符串。 |
+| `flat-json` | `.json` | 顶层 `string -> string` object；属性名按 `.` 拆成 key 段。 |
+
+数组、数字、布尔值、`null` 与非 mapping 顶层在结构化本地化文件中都无效。
+
+## 覆盖合并
+
+目标槽已有 `LocBundle` 时，reader 会把新内容覆盖合并进去。不同语言/表路径直接并存；同表同结构化 key 的新值会替换旧值，并保留旧条目的位置；新 key 按文件顺序追加。
+
+目标槽是其他 artifact 类型时，operation 报错并保持原值。
+
+## 顺序与失败
+
+语言目录和文件按 ordinal 顺序处理，文件按 UTF-8 读取。根目录缺失或枚举失败会报告 error。单个文件格式错误时会跳过该文件，其他有效文件仍合并进 workspace；operation 仍返回失败，令 CLI 以非零状态退出。
+
+<Aside type="note">
+  `nested-json` 与 `flat-json` 都使用 `.json`。应当按文件实际形状选择 operation，SpireLoc 不会自动探测。
+</Aside>

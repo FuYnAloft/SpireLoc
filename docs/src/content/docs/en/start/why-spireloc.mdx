@@ -1,0 +1,42 @@
+---
+title: Why SpireLoc
+description: What SpireLoc solves and how its source-to-game workflow is structured.
+---
+
+Slay the Spire 2 reads localization from flat JSON keys such as `MY_MOD_CARD_ARCANE_BOLT.title`. Those keys are good runtime identifiers, but they are noisy source code: long collision-resistant prefixes are repeated everywhere, nested relationships are hidden in dots, and library-specific conventions are easy to mistype.
+
+SpireLoc keeps two representations deliberately separate:
+
+- **Source localization** is written for people as nested YAML, TOML, or JSON.
+- **Game localization** is generated for the game as flat JSON.
+- **Operations** transform a localization bundle in memory. File reads and writes are operations too.
+- **Actions** package a known sequence of operations behind a small, reusable command.
+
+## Structured keys stay structured
+
+Internally, every entry has a list of key segments and a string value. A key is flattened with `.` only while writing flat JSON. Model ID transforms therefore change the relevant segment without guessing where a dot came from.
+
+```yaml title="source/eng/cards.yaml"
+ArcaneBolt:
+  title: Arcane Bolt
+  description: Deal 8 damage.
+```
+
+```json title="game/eng/cards.json"
+{
+  "MY_MOD_CARD_ARCANE_BOLT.title": "Arcane Bolt",
+  "MY_MOD_CARD_ARCANE_BOLT.description": "Deal 8 damage."
+}
+```
+
+## Reversible workflows
+
+The built-in RitsuLib and BaseLib actions work in both directions. Forward conversion generates game files; `--reversed` reads those files, restores source-style IDs, and writes structured files. This is useful when migrating an existing mod as well as when maintaining a new one.
+
+## Automation instead of memory
+
+The useful conversion is the one that reliably runs before the game or packager reads the files. A project-local .NET tool manifest pins SpireLoc with the repository, while an MSBuild target can run the conversion before normal builds or before a custom Godot packaging target.
+
+SpireLoc is currently preview software. Command and action schemas may still evolve, so pinning the project-local tool is recommended for shared mod projects.
+
+Continue with [installation and automation](../setup/).

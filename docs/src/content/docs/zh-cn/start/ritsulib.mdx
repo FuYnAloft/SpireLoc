@@ -1,0 +1,157 @@
+---
+title: 使用 RitsuLib
+description: 在已有或新建的 RitsuLib 模组项目中接入 SpireLoc。
+---
+
+import { Aside, FileTree, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+<Aside type="note" title="开始之前">
+  请先[安装 SpireLoc](../setup/#安装-spireloc)。下面使用全局工具的简短写法；项目级工具需要把命令开头替换为 `dotnet tool run spireloc --`。
+</Aside>
+
+## 建立目录布局
+
+建议在本地化源码目录中放置一个空的 `.gdignore`。这样 Godot 会忽略整棵源码目录，也能避免这些文件被意外打包进导出的 PCK。
+
+<Tabs syncKey="project-state">
+<TabItem label="已有项目">
+
+大多数模组已经在自身的 `localization` 目录中保存了游戏可用的 JSON。保留这些文件，新建源码目录，再用反向 action 完成第一次迁移。
+
+<FileTree>
+- MyMod/
+  - localization/ <span>已有游戏文件</span>
+    - eng/
+      - cards.json
+      - ancients.json
+      - characters.json
+      - relics.json
+    - zhs/
+      - cards.json
+      - ancients.json
+      - characters.json
+      - relics.json
+- Tools/
+  - localization/ <span>由 SpireLoc 创建</span>
+    - .gdignore <span>需手动添加</span>
+</FileTree>
+
+先确保 Git 工作区干净或做好备份，再执行一次：
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization --reversed
+```
+
+SpireLoc 会读取已有 flat JSON，并写出嵌套 YAML 源码；还会从 `cards` 中提取本模组的 RitsuLib ModelCapability，分别写入 `model_capabilities.yaml` 与历史兼容的 `modelcapabilities.yaml`。检查生成的 diff，之后只编辑 `Tools/localization` 下的源码。
+
+</TabItem>
+<TabItem label="新项目">
+
+按游戏语言建立一级目录，文件名就是本地化表名。第一次正向转换前，游戏输出目录可以不存在。
+
+<FileTree>
+- Tools/
+  - localization/ <span>人类编写的源码</span>
+    - .gdignore
+    - eng/
+      - cards.yaml
+      - ancients.yaml
+      - characters.yaml
+      - relics.yaml
+      - model_capabilities.yaml <span>对应 `MODEL_CAPABILITY`</span>
+      - modelcapabilities.yaml <span>历史 `MODELCAPABILITY` 写法</span>
+    - zhs/
+      - cards.yaml
+- MyMod/
+  - localization/ <span>生成的游戏文件</span>
+</FileTree>
+
+只需创建模组实际使用的表。正向转换时，SpireLoc 会创建语言目录与输出文件。
+
+</TabItem>
+</Tabs>
+
+<Steps>
+1. **确定 RitsuLib Mod ID**
+
+   传入注册 RitsuLib model 时使用的同一个 Mod ID。`MyMod` 会规范化成 `MY_MOD`，不同本地化表再提供各自的 model 类别。
+
+2. **编写或检查本地化源码**
+
+   每条嵌套 mapping 路径都会成为结构化本地化 key，叶子必须是字符串。
+
+   ```yaml title="Tools/localization/zhs/cards.yaml"
+   ArcaneBolt:
+     title: 奥术箭
+     description: 造成 8 点伤害。
+   ```
+
+   这个 card ID 在游戏文件中会变为 `MY_MOD_CARD_ARCANE_BOLT`。
+
+3. **生成游戏 JSON**
+
+   ```powershell
+   spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization
+   ```
+
+   Action 会读取 YAML、按 RitsuLib 的表类别处理 Model ID、把两种 ModelCapability 源码表合并到 `cards`，最后写出 flat JSON。
+
+4. **只有游戏文件更新时才再次反向转换**
+
+   ```powershell
+   spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization --reversed
+   ```
+
+   反向模式会覆盖匹配的源码文件，因此请先提交或备份源码修改。
+</Steps>
+
+## 原版 ID 不会被重复处理
+
+符合 ASCII `[A-Z_-]+` 的源码 key 段会被直接保留。ancient 对话可以安全地引用原版 `DARV`，同时使用模组角色：
+
+```yaml title="Tools/localization/zhs/ancients.yaml"
+DARV:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: 达尔夫的一句台词。
+        next: 回应
+      0-1:
+        char: 一句回答。
+```
+
+生成键的开头是：
+
+```text
+DARV.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-0.ancient
+DARV.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-1.char
+```
+
+`DARV` 保持原样，只有源码形式的角色 ID 会获得 RitsuLib character 类别前缀。自定义 ancient 与四种等价源码格式见完整的 [RitsuLib 游戏/源码写法对照](../../reference/syntax/ritsulib/)。
+
+## ModelCapability 的两种写法
+
+RitsuLib 历史上存在两种类别拼写，SpireLoc 将它们表示为两张不同的源码表：
+
+| 源码表 | 生成前缀 | 游戏表 |
+| --- | --- | --- |
+| `model_capabilities` | `MY_MOD_MODEL_CAPABILITY_...` | `cards` |
+| `modelcapabilities` | `MY_MOD_MODELCAPABILITY_...` | `cards` |
+
+只有项目自行管理这些条目，并希望它们在源码侧也继续留在 `cards` 时，才应使用 `--disable-model-capabilities`。
+
+RitsuLib 的 `static_hover_tips` 混合了 Model ID 和其他类别的键，因此会被 Model ID 处理刻意跳过。请在源码中保留其游戏形式，或使用 [`--model-id prefix`](../../reference/operations/model-id/#model-id-prefix) 只处理已知子集。
+
+## 其他选项
+
+通过 `--source-format` 与 `--game-format` 可以选择其他目录格式，也可以启用 MinionLib component 兼容：
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization `
+  --minionlib-components `
+  --minionlib-namespace-top MyComponentNamespace
+```
+
+底层操作的完整细节见 [Model ID](../../reference/operations/model-id/) 与 [Reshape](../../reference/operations/reshape/) 参考。
+
+最后，把转换[接入构建或打包流程](../setup/#自动化配置)。

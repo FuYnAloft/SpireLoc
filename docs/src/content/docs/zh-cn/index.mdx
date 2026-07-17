@@ -1,0 +1,34 @@
+---
+title: SpireLoc
+description: 用易读的源文件维护《杀戮尖塔 2》模组本地化，并通过可重复的流水线生成游戏 JSON。
+template: splash
+hero:
+  tagline: 面向《杀戮尖塔 2》模组的本地化流水线。
+  actions:
+    - text: 配合 RitsuLib 使用
+      link: ./start/ritsulib/
+      icon: right-arrow
+    - text: 配合 BaseLib 使用
+      link: ./start/baselib/
+      icon: right-arrow
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="适合人写的源文件" icon="document">
+    使用嵌套 YAML、TOML 或 JSON，交给 SpireLoc 生成游戏需要的扁平 JSON。
+  </Card>
+  <Card title="理解模组库的 ID" icon="seti:config">
+    自动处理原版、RitsuLib 与 BaseLib 的 Model ID，无需手工拼接结构化键。
+  </Card>
+  <Card title="可组合的流水线" icon="random">
+    用 `pipe` 直接组合 operation，或把固定流程封装成带参数的 action。
+  </Card>
+  <Card title="接入构建" icon="rocket">
+    在构建时生成本地化，或在 Godot 导出模组包之前完成转换。
+  </Card>
+</CardGrid>
+
+可以先了解[为什么选择 SpireLoc](./start/why-spireloc/)，也可以直接进入[环境配置](./start/setup/)。

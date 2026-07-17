@@ -1,0 +1,259 @@
+---
+title: 内置 Action
+description: SpireLoc 随包发布的 RitsuLib 与 BaseLib action 参数及完整定义。
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Release 包会发布两个 action。运行 `spireloc action list` 与 `spireloc action help <name>` 可以从当前版本检查它们。仅供开发的 debug-only action 不在此文档中展示。
+
+## 公开参数
+
+两个 action 都接受三个位置参数：RitsuLib Mod ID 或 BaseLib namespace、源码目录与游戏目录。此外还提供：
+
+| 参数 | 默认值 | 含义 |
+| --- | --- | --- |
+| `--source-format` | `yaml` | 结构化源码目录格式。 |
+| `--game-format` | `flat-json` | 游戏目录格式。 |
+| `--minionlib-components` | `false` | 启用 MinionLib component 兼容。 |
+| `--minionlib-namespace-top` | 空 | 覆盖 component namespace；否则使用模组库 ID。 |
+| `--reversed` | `false` | 从游戏文件反向生成源码。 |
+
+RitsuLib 还提供默认值为 `false` 的 `--disable-model-capabilities`。
+
+## 随包定义
+
+<Tabs syncKey="builtin-action">
+<TabItem label="ritsulib.yaml">
+
+```yaml
+schema-version: 1
+description: Convert localization between RitsuLib source and game directory layouts.
+parameters:
+  mod-id:
+    type: string
+    description: Mod ID used by RitsuLib.
+    position: 0
+  source-path:
+    type: string
+    description: Source localization directory.
+    position: 1
+  game-path:
+    type: string
+    description: Game localization directory.
+    position: 2
+  source-format:
+    type: string
+    description: Structured source localization format.
+    default: yaml
+  game-format:
+    type: string
+    description: Game localization format.
+    default: flat-json
+  minionlib-components:
+    type: bool
+    description: Enable MinionLib component compatibility conversion.
+    flag: true
+    default: false
+  minionlib-namespace-top:
+    type: string
+    description: MinionLib component namespace; leave empty to use mod-id.
+    default: ""
+  disable-model-capabilities:
+    type: bool
+    description: Disable RitsuLib ModelCapability table separation and merging.
+    flag: true
+    default: false
+  reversed:
+    type: bool
+    description: Convert game localization back to source form.
+    flag: true
+    default: false
+steps:
+  - if:
+      not: $(reversed)
+    input:
+      kind: $(source-format)
+      path: $(source-path)
+  - if:
+      not: $(reversed)
+    model-id:
+      kind: ritsulib
+      mod-id: $(mod-id)
+  - if:
+      all:
+        - not: $(reversed)
+        - not: $(disable-model-capabilities)
+    reshape:
+      kind: [ritsulib-model-capability, merge]
+  - if:
+      all:
+        - not: $(reversed)
+        - $(minionlib-components)
+        - equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-game]
+      namespace-top: $(mod-id)
+  - if:
+      all:
+        - not: $(reversed)
+        - $(minionlib-components)
+        - not:
+            equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-game]
+      namespace-top: $(minionlib-namespace-top)
+  - if:
+      not: $(reversed)
+    output:
+      kind: $(game-format)
+      path: $(game-path)
+
+  - if: $(reversed)
+    input:
+      kind: $(game-format)
+      path: $(game-path)
+  - if:
+      all:
+        - $(reversed)
+        - $(minionlib-components)
+        - equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-source]
+      namespace-top: $(mod-id)
+  - if:
+      all:
+        - $(reversed)
+        - $(minionlib-components)
+        - not:
+            equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-source]
+      namespace-top: $(minionlib-namespace-top)
+  - if:
+      all:
+        - $(reversed)
+        - not: $(disable-model-capabilities)
+    reshape:
+      kind: [ritsulib-model-capability, split]
+      mod-id: $(mod-id)
+  - if: $(reversed)
+    model-id:
+      kind: ritsulib
+      mod-id: $(mod-id)
+      reversed: true
+  - if: $(reversed)
+    output:
+      kind: $(source-format)
+      path: $(source-path)
+```
+
+</TabItem>
+<TabItem label="baselib.yaml">
+
+```yaml
+schema-version: 1
+description: Convert localization between BaseLib source and game directory layouts.
+parameters:
+  namespace-top:
+    type: string
+    description: Top-level BaseLib namespace.
+    position: 0
+  source-path:
+    type: string
+    description: Source localization directory.
+    position: 1
+  game-path:
+    type: string
+    description: Game localization directory.
+    position: 2
+  source-format:
+    type: string
+    description: Structured source localization format.
+    default: yaml
+  game-format:
+    type: string
+    description: Game localization format.
+    default: flat-json
+  minionlib-components:
+    type: bool
+    description: Enable MinionLib component compatibility conversion.
+    flag: true
+    default: false
+  minionlib-namespace-top:
+    type: string
+    description: MinionLib component namespace; leave empty to use namespace-top.
+    default: ""
+  reversed:
+    type: bool
+    description: Convert game localization back to source form.
+    flag: true
+    default: false
+steps:
+  - if:
+      not: $(reversed)
+    input:
+      kind: $(source-format)
+      path: $(source-path)
+  - if:
+      not: $(reversed)
+    model-id:
+      kind: baselib
+      namespace-top: $(namespace-top)
+  - if:
+      all:
+        - not: $(reversed)
+        - $(minionlib-components)
+        - equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-game]
+      namespace-top: $(namespace-top)
+  - if:
+      all:
+        - not: $(reversed)
+        - $(minionlib-components)
+        - not:
+            equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-game]
+      namespace-top: $(minionlib-namespace-top)
+  - if:
+      not: $(reversed)
+    output:
+      kind: $(game-format)
+      path: $(game-path)
+
+  - if: $(reversed)
+    input:
+      kind: $(game-format)
+      path: $(game-path)
+  - if:
+      all:
+        - $(reversed)
+        - $(minionlib-components)
+        - equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-source]
+      namespace-top: $(namespace-top)
+  - if:
+      all:
+        - $(reversed)
+        - $(minionlib-components)
+        - not:
+            equals: [$(minionlib-namespace-top), ""]
+    compat:
+      kind: [minionlib-component, to-source]
+      namespace-top: $(minionlib-namespace-top)
+  - if: $(reversed)
+    model-id:
+      kind: baselib
+      namespace-top: $(namespace-top)
+      reversed: true
+  - if: $(reversed)
+    output:
+      kind: $(source-format)
+      path: $(source-path)
+```
+
+</TabItem>
+</Tabs>

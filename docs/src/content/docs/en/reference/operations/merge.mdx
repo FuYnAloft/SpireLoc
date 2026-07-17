@@ -1,0 +1,22 @@
+---
+title: Merge Operation
+description: Overlay localization bundle slots in a deterministic order.
+---
+
+```text
+--merge [<from>...] [--to <slot>]
+```
+
+When source slots are supplied, they are merged in command order. Later bundles override earlier bundles for the same language, table, and structured key.
+
+```powershell
+spireloc pipe --merge common mod overrides --to main
+```
+
+When `from` is omitted, every workspace slot containing a `LocBundle` is selected and sorted by slot name using ordinal ordering before merge:
+
+```powershell
+spireloc pipe --merge --to main
+```
+
+`to` defaults to `main` and may overwrite an existing slot. Overridden entries keep their earlier position; new keys append in source order. Explicit sources must exist, contain `LocBundle`, and cannot repeat. The operation fails when no bundle source is available.

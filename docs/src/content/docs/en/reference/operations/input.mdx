@@ -1,0 +1,49 @@
+---
+title: Input Operations
+description: Read directory-based YAML, TOML, nested JSON, or flat JSON into a workspace slot.
+---
+
+import { Aside, FileTree } from '@astrojs/starlight/components';
+
+All input operations scan one level of language directories and one level of matching files:
+
+<FileTree>
+- localization/
+  - eng/
+    - cards.yaml
+    - relics.yaml
+  - zhs/
+    - cards.yaml
+</FileTree>
+
+```text
+--input yaml <path> [--to <slot>]
+--input toml <path> [--to <slot>]
+--input nested-json <path> [--to <slot>]
+--input flat-json <path> [--to <slot>]
+```
+
+`path` is required. `to` defaults to `main`.
+
+| Kind | Extension | Accepted structure |
+| --- | --- | --- |
+| `yaml` | `.yaml` | Nested mappings with string leaves; `.yml` is not scanned. |
+| `toml` | `.toml` | Nested tables with string leaves. |
+| `nested-json` | `.json` | Nested objects with string leaves. |
+| `flat-json` | `.json` | One top-level object of `string -> string`; property names are split on `.`. |
+
+Arrays, numbers, booleans, `null`, and non-mapping roots are invalid in structured localization files.
+
+## Overlay behavior
+
+When the destination already contains a `LocBundle`, the reader overlays new content onto it. Different language/table paths coexist. In the same table, a new entry with the same structured key replaces the old value in its existing position; new keys append in file order.
+
+If the slot contains another artifact type, the operation reports an error and leaves it unchanged.
+
+## Ordering and failures
+
+Language directories and files are processed in ordinal order, and files are read as UTF-8. A missing root or directory enumeration failure reports an error. If one file is malformed, that file is skipped while other valid files are still merged into the workspace; the operation still reports failure so the CLI exits non-zero.
+
+<Aside type="note">
+  `nested-json` and `flat-json` share `.json`. Choose the operation that matches the file's actual shape; SpireLoc does not auto-detect it.
+</Aside>

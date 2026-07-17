@@ -1,0 +1,75 @@
+---
+title: Use Actions
+description: Run built-in or file actions directly and embed them in a larger pipeline.
+---
+
+An action is a parameterized YAML or JSON pipeline. It expands into ordinary operations before execution, so it can be run as a complete workflow or inserted into another pipeline.
+
+## Discover built-in actions
+
+Release builds include `ritsulib` and `baselib`:
+
+```powershell
+spireloc action list
+spireloc action help ritsulib
+spireloc action help baselib
+```
+
+Run one through `action run` or its shortcut:
+
+```powershell
+spireloc action run ritsulib MyMod ./source ./game
+spireloc ritsulib MyMod ./source ./game
+
+spireloc baselib MyMod ./source ./game --reversed
+```
+
+Built-in names are case-sensitive exact names. Any other reference is treated as a file path.
+
+## Run an action file
+
+Top-level action paths are resolved from the current working directory:
+
+```powershell
+spireloc action run ./actions/convert.yaml MyMod
+spireloc action run C:\mods\shared\convert.json MyMod
+```
+
+YAML and JSON actions use the same schema. The loader accepts JSON syntax directly; the extension does not change semantics.
+
+Show file-action parameters without running it:
+
+```powershell
+spireloc action help ./actions/convert.yaml
+```
+
+## Insert an action into pipe
+
+`--action` expands at its exact position:
+
+```powershell
+spireloc pipe `
+  --input yaml ./common --to common `
+  --action ./actions/read-mod.yaml MyMod `
+  --merge common main `
+  --output flat-json ./generated
+```
+
+Action arguments continue until the next registered operation head. Keep that boundary in mind when a positional action argument begins with `--`.
+
+## Passing action parameters
+
+An action can expose positional values, named values, and boolean flags. For example:
+
+```powershell
+spireloc action run ./convert.yaml MyMod `
+  --source-format toml `
+  --reversed
+```
+
+- Positional parameters are consumed in declared position order.
+- Named parameters use `--name value`.
+- A boolean flag uses only `--name` and sets the value to `true`.
+- Defaults fill omitted optional parameters.
+
+Continue with [writing an action](../writing-actions/) or consult the [complete action syntax](../../../reference/action-syntax/).

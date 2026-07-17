@@ -1,0 +1,48 @@
+---
+title: Partition Operations
+description: 按表、语言或结构化 entry 路径拆分本地化 bundle。
+---
+
+所有 partition operation 共用以下参数：
+
+| 参数 | 默认值 | 含义 |
+| --- | --- | --- |
+| `<condition>...` | 必填 | 一个或多个 OR 条件。 |
+| `--from` | `main` | 来源 `LocBundle` 槽。 |
+| `--matched` | `matched` | 匹配内容的目标槽。 |
+| `--unmatched` | `unmatched` | 其余内容的目标槽。 |
+
+两个目标槽名必须不同。已有目标允许覆盖，来源槽保持不变。
+
+## 按表
+
+```text
+--partition table <condition>... [--from <slot>] [--matched <slot>] [--unmatched <slot>]
+```
+
+表名精确匹配任一条件时，整张表进入 `matched`。
+
+## 按语言
+
+```text
+--partition language <condition>... [--from <slot>] [--matched <slot>] [--unmatched <slot>]
+```
+
+语言 ID 精确匹配任一条件时，整张表进入 `matched`。
+
+## 按正则
+
+```text
+--partition regex <condition>... [--from <slot>] [--matched <slot>] [--unmatched <slot>]
+```
+
+每个正则匹配 `language/table/key.segment.path`，entry 会逐条拆分，任一正则成功即进入 `matched`。正则执行有一秒超时，超时会报告失败。
+
+```powershell
+spireloc pipe `
+  --input yaml ./source `
+  --partition regex '^zhs/cards/' 'title$' `
+  --output yaml ./matched --from matched
+```
+
+空表会保留在 `unmatched`，除非整表匹配了 table/language 条件。

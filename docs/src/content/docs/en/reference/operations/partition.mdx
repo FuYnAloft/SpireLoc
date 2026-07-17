@@ -1,0 +1,48 @@
+---
+title: Partition Operations
+description: Split a localization bundle by table, language, or structured entry path.
+---
+
+All partition operations share these options:
+
+| Parameter | Default | Meaning |
+| --- | --- | --- |
+| `<condition>...` | required | One or more OR conditions. |
+| `--from` | `main` | Source `LocBundle` slot. |
+| `--matched` | `matched` | Destination for matches. |
+| `--unmatched` | `unmatched` | Destination for everything else. |
+
+The destination names must differ. Existing destination slots may be overwritten; the source slot is unchanged.
+
+## By table
+
+```text
+--partition table <condition>... [--from <slot>] [--matched <slot>] [--unmatched <slot>]
+```
+
+An exact table-name match moves the entire table to `matched`.
+
+## By language
+
+```text
+--partition language <condition>... [--from <slot>] [--matched <slot>] [--unmatched <slot>]
+```
+
+An exact language ID match moves the entire table to `matched`.
+
+## By regex
+
+```text
+--partition regex <condition>... [--from <slot>] [--matched <slot>] [--unmatched <slot>]
+```
+
+Each regex is tested against `language/table/key.segment.path`. Entries are split individually and match when any regex succeeds. Regex execution has a one-second timeout; a timeout reports failure.
+
+```powershell
+spireloc pipe `
+  --input yaml ./source `
+  --partition regex '^zhs/cards/' 'title$' `
+  --output yaml ./matched --from matched
+```
+
+Empty tables remain in `unmatched` unless the whole table matched a table/language condition.
