@@ -2,14 +2,19 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 
+const site = 'https://fuynaloft.github.io';
+const base = '/SpireLoc';
+const documentationArchiveUrl = `${site}${base}/downloads/SpireLoc-docs.zip`;
+
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://fuynaloft.github.io',
-	base: '/SpireLoc',
+	site,
+	base,
 	integrations: [
 		starlight({
 			title: 'SpireLoc',
 			description: 'Localization pipelines for Slay the Spire 2 mods.',
+			customCss: ['./src/styles/custom.css'],
 			defaultLocale: 'en',
 			locales: {
 				en: { label: 'English', lang: 'en' },
@@ -76,6 +81,15 @@ export default defineConfig({
 						{ slug: 'reference/builtin-actions' },
 						{ slug: 'reference/action-syntax' },
 					],
+				},
+				{
+					label: 'Download all documentation (zip)',
+					translations: { 'zh-CN': '下载全部文档（zip）' },
+					link: documentationArchiveUrl,
+					attrs: {
+						'data-download-docs': true,
+						download: 'SpireLoc-docs.zip',
+					},
 				},
 			],
 		}),

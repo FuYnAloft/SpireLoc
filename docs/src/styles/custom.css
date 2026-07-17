@@ -1,0 +1,7 @@
+a[data-download-docs] {
+    color: var(--sl-color-gray-2);
+	font-size: var(--sl-text-sm);
+	font-weight: 400;
+	text-decoration: underline;
+	text-underline-offset: 0.2em;
+}
