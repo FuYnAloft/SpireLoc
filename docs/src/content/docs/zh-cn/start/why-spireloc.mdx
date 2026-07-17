@@ -1,42 +1,166 @@
 ---
 title: 为什么选择 SpireLoc
-description: SpireLoc 解决的问题，以及“本地化源码到游戏文件”的工作方式。
+description: 更轻松地编写、迁移和维护《杀戮尖塔 2》模组本地化。
 ---
 
-《杀戮尖塔 2》会读取形如 `MY_MOD_CARD_ARCANE_BOLT.title` 的扁平 JSON 键。这种键很适合作为运行时 ID，却不适合长期手写：为了避免模组冲突而设计的长前缀会遍布文件，点号掩盖了原有层级，不同模组库的命名规则也很容易写错。
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-SpireLoc 刻意区分两种表示：
+游戏需要完整、唯一的 ID，但这不意味着你也必须每天手写它们。SpireLoc 让你用接近代码的方式维护本地化，再生成游戏实际读取的文件。
 
-- **本地化源码**面向人，使用嵌套 YAML、TOML 或 JSON。
-- **游戏本地化**面向游戏，由工具生成扁平 JSON。
-- **Operation** 在内存中的本地化 bundle 上依次工作，文件读写本身也是 operation。
-- **Action** 把一组固定 operation 封装成简短、可复用的命令。
+## 更清爽的键名，兼容四种形式
 
-## 结构化键始终保持结构化
+下面以 RitsuLib 为例。游戏读取的本地化必须写成带 Mod ID、model 类别和全大写名称的 flat JSON：
 
-在 SpireLoc 内部，每个条目的键都是字符串段列表，值是字符串。只有写入 flat JSON 时才会用 `.` 连接。Model ID 转换因此只修改相应的键段，不需要猜测点号来自哪里。
-
-```yaml title="source/zhs/cards.yaml"
-ArcaneBolt:
-  title: 奥术箭
-  description: 造成 8 点伤害。
-```
-
-```json title="game/zhs/cards.json"
+```json
 {
-  "MY_MOD_CARD_ARCANE_BOLT.title": "奥术箭",
-  "MY_MOD_CARD_ARCANE_BOLT.description": "造成 8 点伤害。"
+  "MY_MOD_CARD_EXAMPLE_STRIKE.title": "打击",
+  "MY_MOD_CARD_EXAMPLE_STRIKE.description": "造成 42 点伤害。",
+  "MY_MOD_CARD_EXAMPLE_DEFENSE.title": "防御",
+  "MY_MOD_CARD_EXAMPLE_DEFENSE.description": "获得 37 点格挡。",
+  "MY_MOD_CARD_EXAMPLE_MULTI_LINE.title": "效果很多的牌",
+  "MY_MOD_CARD_EXAMPLE_MULTI_LINE.description": "随机发动 1 种效果：\n- 直接获得本场战斗胜利\n- 直接获得本场战斗失败"
 }
 ```
 
-## 正反双向的工作流
+使用 SpireLoc 时，键名可以直接采用代码里的类名。前缀、类别、大小写转换和最终的 flat JSON 都由工具处理。
 
-内置 RitsuLib 与 BaseLib action 都支持双向转换。正向生成游戏文件；添加 `--reversed` 后，则会读取现有游戏文件、还原适合源码的 ID，再写成结构化文件。这既适合新模组，也适合迁移已有项目。
+无论你喜欢 YAML、TOML、类似《杀戮尖塔 1》的嵌套式 JSON，还是类似原版游戏用 `.` 分割的平铺式 JSON，SpireLoc 都能满足。下面四种源码写法完全等价：
 
-## 把转换交给自动化
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
 
-真正可靠的转换，应当在游戏或打包工具读取文件之前自动发生。项目级 .NET tool manifest 可以把 SpireLoc 版本固定在仓库中；MSBuild target 则可以在普通构建前，或在自定义 Godot 打包 target 前执行转换。
+```yaml
+# 你可以随便写注释
+ExampleStrike:
+  title: 打击
+  description: 造成 42 点伤害。
 
-SpireLoc 目前处于 preview 阶段，命令与 action schema 仍可能调整。多人协作的模组项目更适合使用项目级工具并固定版本。
+ExampleDefense:
+  title: 防御
+  description: 获得 37 点格挡。
 
-接下来进行[环境配置](../setup/)。
+ExampleMultiLine:
+  title: 效果很多的牌
+  # 你可以使用多行文本清晰地书写多行描述
+  description: |-
+    随机发动 1 种效果：
+    - 直接获得本场战斗胜利
+    - 直接获得本场战斗失败
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml
+# 你可以随便写注释
+[ExampleStrike]
+title = "打击"
+description = "造成 42 点伤害。"
+
+[ExampleDefense]
+title = "防御"
+description = "获得 37 点格挡。"
+
+[ExampleMultiLine]
+title = "效果很多的牌"
+# 你可以使用多行文本清晰地书写多行描述
+description = """
+随机发动 1 种效果：
+- 直接获得本场战斗胜利
+- 直接获得本场战斗失败"""
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json
+{
+  "ExampleStrike": {
+    "title": "打击",
+    "description": "造成 42 点伤害。"
+  },
+  "ExampleDefense": {
+    "title": "防御",
+    "description": "获得 37 点格挡。"
+  },
+  "ExampleMultiLine": {
+    "title": "效果很多的牌",
+    "description": "随机发动 1 种效果：\n- 直接获得本场战斗胜利\n- 直接获得本场战斗失败"
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json
+{
+  "ExampleStrike.title": "打击",
+  "ExampleStrike.description": "造成 42 点伤害。",
+  "ExampleDefense.title": "防御",
+  "ExampleDefense.description": "获得 37 点格挡。",
+  "ExampleMultiLine.title": "效果很多的牌",
+  "ExampleMultiLine.description": "随机发动 1 种效果：\n- 直接获得本场战斗胜利\n- 直接获得本场战斗失败"
+}
+```
+
+</TabItem>
+</Tabs>
+
+同一个 ID 不用重复书写，也不用自己把 `ExampleMultiLine` 改成 `MY_MOD_CARD_EXAMPLE_MULTI_LINE`。标签选择会与其他写法对比页同步。两套模组库的完整例子见 [RitsuLib 写法对比](../../reference/syntax/ritsulib/)与 [BaseLib 写法对比](../../reference/syntax/baselib/)。
+
+## 零成本迁移现有项目
+
+已经写好了游戏可用的 JSON，也不需要重新整理一遍。内置 action 都支持反向转换；只需添加 `--reversed`，SpireLoc 就会读取现有文件、还原适合手写的短 ID，并生成结构化源码：
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization --reversed
+```
+
+检查一次生成的 diff，之后改为维护 `Tools/localization` 即可。原有翻译不需要复制，现有 ID 不需要逐个重命名，迁移不要求你从头重写本地化。
+
+## 与原版和其他模组兼容
+
+与原版角色、ancient 或其他模组交互时，本地化里难免会同时出现多套 ID。SpireLoc 在处理 Model ID 时，会保留那些看起来已经是游戏形式的键段，也就是只包含大写字母、下划线和连字符的 ID。
+
+下面的 `DARV` 来自原版；`ANOTHER_MOD_ANCIENT_ANTHONY` 则是 Mod ID 为 `AnotherMod`、使用 RitsuLib 注册的先古 `Anthony`：
+
+```yaml
+DARV:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: 又一位访客。
+        next: 回应
+ANOTHER_MOD_ANCIENT_ANTHONY:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: 我一直在等你。
+        next: 回应
+```
+
+两个外部 ancient ID 都会保持不变，只有你自己的 `MyCharacter` 会被转换：
+
+```text
+DARV.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-0.ancient
+ANOTHER_MOD_ANCIENT_ANTHONY.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-0.ancient
+```
+
+因此，SpireLoc 不会把 `AnotherMod` 的 Anthony 错误改成 `MyMod` 的先古，也不会在跨模组交互中重复添加自己的前缀。
+
+## 安装简单，常见组合开箱即用
+
+SpireLoc 发布为 NuGet 上的 .NET tool，可以全局安装，也可以作为项目工具固定在模组仓库中：
+
+```powershell
+dotnet tool install --global SpireLoc --prerelease
+```
+
+内置的 RitsuLib 与 BaseLib action 已经包含各自常见本地化表的 Model ID 处理、正反转换与特殊表重整；使用 MinionLib 时，还可以直接启用 component 的拆分、合并和 ID 兼容处理。通常只需要一条命令，不必自己拼装整条转换流程。
+
+## 内置流程不够时仍然灵活
+
+特殊模组不必迁就固定模板。自定义 action 可以组合读取、Model ID 转换、表重整、筛选、合并和输出，并加入参数、条件或共享步骤。写好后，它和内置 action 一样可以用一条简短命令重复执行，也能提交到仓库供整个团队使用。
+
+先完成[环境配置](../setup/)，再根据项目选择[使用 RitsuLib](../ritsulib/)或[使用 BaseLib](../baselib/)。需要自定义流程时，继续阅读[使用 Action](../../guides/actions/using-actions/)与[编写 Action](../../guides/actions/writing-actions/)。

@@ -1,42 +1,166 @@
 ---
 title: Why SpireLoc
-description: What SpireLoc solves and how its source-to-game workflow is structured.
+description: Write, migrate, and maintain Slay the Spire 2 mod localization with less friction.
 ---
 
-Slay the Spire 2 reads localization from flat JSON keys such as `MY_MOD_CARD_ARCANE_BOLT.title`. Those keys are good runtime identifiers, but they are noisy source code: long collision-resistant prefixes are repeated everywhere, nested relationships are hidden in dots, and library-specific conventions are easy to mistype.
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-SpireLoc keeps two representations deliberately separate:
+The game needs complete, unique IDs. That does not mean you should have to type them every day. SpireLoc lets you maintain localization using the same names as your code, then generates the files the game actually reads.
 
-- **Source localization** is written for people as nested YAML, TOML, or JSON.
-- **Game localization** is generated for the game as flat JSON.
-- **Operations** transform a localization bundle in memory. File reads and writes are operations too.
-- **Actions** package a known sequence of operations behind a small, reusable command.
+## Cleaner keys in four supported formats
 
-## Structured keys stay structured
+Take RitsuLib as an example. Game localization must be flat JSON with a Mod ID, model category, and uppercase model name:
 
-Internally, every entry has a list of key segments and a string value. A key is flattened with `.` only while writing flat JSON. Model ID transforms therefore change the relevant segment without guessing where a dot came from.
-
-```yaml title="source/eng/cards.yaml"
-ArcaneBolt:
-  title: Arcane Bolt
-  description: Deal 8 damage.
-```
-
-```json title="game/eng/cards.json"
+```json
 {
-  "MY_MOD_CARD_ARCANE_BOLT.title": "Arcane Bolt",
-  "MY_MOD_CARD_ARCANE_BOLT.description": "Deal 8 damage."
+  "MY_MOD_CARD_EXAMPLE_STRIKE.title": "Strike",
+  "MY_MOD_CARD_EXAMPLE_STRIKE.description": "Deal 42 damage.",
+  "MY_MOD_CARD_EXAMPLE_DEFENSE.title": "Defend",
+  "MY_MOD_CARD_EXAMPLE_DEFENSE.description": "Gain 37 Block.",
+  "MY_MOD_CARD_EXAMPLE_MULTI_LINE.title": "A Card with Many Effects",
+  "MY_MOD_CARD_EXAMPLE_MULTI_LINE.description": "Trigger one random effect:\n- Win this combat\n- Lose this combat"
 }
 ```
 
-## Reversible workflows
+With SpireLoc, keys can use the class names from your code. The tool handles prefixes, categories, casing, and the final flat JSON.
 
-The built-in RitsuLib and BaseLib actions work in both directions. Forward conversion generates game files; `--reversed` reads those files, restores source-style IDs, and writes structured files. This is useful when migrating an existing mod as well as when maintaining a new one.
+Whether you prefer YAML, TOML, nested JSON like Slay the Spire 1, or dot-separated flat JSON like the original game files, SpireLoc supports it. These four source forms are equivalent:
 
-## Automation instead of memory
+<Tabs syncKey="localization-source-format">
+<TabItem label="YAML">
 
-The useful conversion is the one that reliably runs before the game or packager reads the files. A project-local .NET tool manifest pins SpireLoc with the repository, while an MSBuild target can run the conversion before normal builds or before a custom Godot packaging target.
+```yaml
+# You can write comments wherever you need them
+ExampleStrike:
+  title: Strike
+  description: Deal 42 damage.
 
-SpireLoc is currently preview software. Command and action schemas may still evolve, so pinning the project-local tool is recommended for shared mod projects.
+ExampleDefense:
+  title: Defend
+  description: Gain 37 Block.
 
-Continue with [installation and automation](../setup/).
+ExampleMultiLine:
+  title: A Card with Many Effects
+  # Multiline strings keep long descriptions easy to read
+  description: |-
+    Trigger one random effect:
+    - Win this combat
+    - Lose this combat
+```
+
+</TabItem>
+<TabItem label="TOML">
+
+```toml
+# You can write comments wherever you need them
+[ExampleStrike]
+title = "Strike"
+description = "Deal 42 damage."
+
+[ExampleDefense]
+title = "Defend"
+description = "Gain 37 Block."
+
+[ExampleMultiLine]
+title = "A Card with Many Effects"
+# Multiline strings keep long descriptions easy to read
+description = """
+Trigger one random effect:
+- Win this combat
+- Lose this combat"""
+```
+
+</TabItem>
+<TabItem label="Nested JSON">
+
+```json
+{
+  "ExampleStrike": {
+    "title": "Strike",
+    "description": "Deal 42 damage."
+  },
+  "ExampleDefense": {
+    "title": "Defend",
+    "description": "Gain 37 Block."
+  },
+  "ExampleMultiLine": {
+    "title": "A Card with Many Effects",
+    "description": "Trigger one random effect:\n- Win this combat\n- Lose this combat"
+  }
+}
+```
+
+</TabItem>
+<TabItem label="Flat JSON">
+
+```json
+{
+  "ExampleStrike.title": "Strike",
+  "ExampleStrike.description": "Deal 42 damage.",
+  "ExampleDefense.title": "Defend",
+  "ExampleDefense.description": "Gain 37 Block.",
+  "ExampleMultiLine.title": "A Card with Many Effects",
+  "ExampleMultiLine.description": "Trigger one random effect:\n- Win this combat\n- Lose this combat"
+}
+```
+
+</TabItem>
+</Tabs>
+
+You do not repeat the same ID for every field or manually turn `ExampleMultiLine` into `MY_MOD_CARD_EXAMPLE_MULTI_LINE`. The selected tab stays synchronized with the other format comparison pages. See the full [RitsuLib comparison](../../reference/syntax/ritsulib/) and [BaseLib comparison](../../reference/syntax/baselib/) for both naming conventions.
+
+## Zero-cost migration for existing projects
+
+Already have game-ready JSON? You do not need to reorganize it by hand. Every built-in action supports reverse conversion. Add `--reversed` and SpireLoc reads the existing files, restores short source-style IDs, and generates structured source files:
+
+```powershell
+spireloc ritsulib MyMod ./Tools/localization ./MyMod/localization --reversed
+```
+
+Review the generated diff once, then maintain `Tools/localization` from that point forward. Existing translations do not need to be copied, IDs do not need to be renamed one at a time, and adopting SpireLoc does not mean rewriting your localization.
+
+## Compatible with vanilla and other mods
+
+Localization that interacts with vanilla characters, ancients, or other mods will naturally contain IDs from more than one source. During Model ID conversion, SpireLoc preserves key segments that already look game-ready: IDs containing only uppercase letters, underscores, and hyphens.
+
+Here, `DARV` comes from the base game. `ANOTHER_MOD_ANCIENT_ANTHONY` is the ancient `Anthony`, registered through RitsuLib by a mod whose Mod ID is `AnotherMod`:
+
+```yaml
+DARV:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: Another visitor.
+        next: Reply
+ANOTHER_MOD_ANCIENT_ANTHONY:
+  talk:
+    MyCharacter:
+      0-0:
+        ancient: I have been waiting for you.
+        next: Reply
+```
+
+Both external ancient IDs stay unchanged while your own `MyCharacter` is converted:
+
+```text
+DARV.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-0.ancient
+ANOTHER_MOD_ANCIENT_ANTHONY.talk.MY_MOD_CHARACTER_MY_CHARACTER.0-0.ancient
+```
+
+SpireLoc therefore does not turn Anthony from `AnotherMod` into an ancient belonging to `MyMod`, and it does not add your prefix a second time during cross-mod interactions.
+
+## Easy to install, ready for common mod stacks
+
+SpireLoc is distributed as a .NET tool on NuGet. Install it globally or pin it as a project tool in your mod repository:
+
+```powershell
+dotnet tool install --global SpireLoc --prerelease
+```
+
+The built-in RitsuLib and BaseLib actions cover their common localization tables, forward and reverse Model ID conversion, and special table reshaping. When a project uses MinionLib, component extraction, merging, and ID compatibility can be enabled directly. Most projects get the complete workflow with a single command instead of assembling a pipeline themselves.
+
+## Flexible when the built-ins are not enough
+
+Unusual mods do not have to fit a fixed template. A custom action can combine input, Model ID conversion, table reshaping, filtering, merging, and output, then add parameters, conditions, or shared steps. Once written, it runs with the same short command style as a built-in action and can be committed for the whole team to use.
+
+Continue with [environment setup](../setup/), then choose [RitsuLib](../ritsulib/) or [BaseLib](../baselib/). For custom workflows, read [using Actions](../../guides/actions/using-actions/) and [writing Actions](../../guides/actions/writing-actions/).
